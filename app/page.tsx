@@ -33,26 +33,6 @@ export default function HomePage() {
             }}>
               Portal Riviera 13
             </h1>
-            <p style={{ 
-              color: '#6b7280', 
-              fontSize: '14px', 
-              marginTop: '4px',
-              margin: 0 
-            }}>
-              ✨ Seu condomínio conectado
-            </p>
-          </div>
-          <div style={{ 
-            width: '48px', 
-            height: '48px', 
-            backgroundColor: '#606c38',
-            borderRadius: '24px', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' 
-          }}>
-            <Home color="white" size={24} />
           </div>
         </div>
         
@@ -96,13 +76,10 @@ export default function HomePage() {
           <div className="grid grid-cols-2 gap-5">
             <Link href="/classificados" className="group">
               <div className="bg-secondary-50 rounded-3xl p-6 border border-secondary-200 group-hover:shadow-2xl group-hover:scale-105 transition-all duration-300">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-center mb-4">
                   <div className="w-16 h-16 bg-secondary rounded-3xl flex items-center justify-center shadow-xl">
                     <TrendingUp className="text-white" size={30} />
                   </div>
-                  <span className="bg-secondary text-white text-sm px-3 py-2 rounded-full font-bold shadow-lg">
-                    {loadingClassifieds ? '...' : classifieds.length}
-                  </span>
                 </div>
                 <h3 className="font-bold text-dark text-xl mb-2">Classificados</h3>
                 <p className="text-dark-600 text-sm">Produtos e serviços</p>
@@ -111,13 +88,10 @@ export default function HomePage() {
 
             <Link href="/imoveis" className="group">
               <div className="bg-primary-50 rounded-3xl p-6 border border-primary-200 group-hover:shadow-2xl group-hover:scale-105 transition-all duration-300">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-center mb-4">
                   <div className="w-16 h-16 bg-primary rounded-3xl flex items-center justify-center shadow-xl">
                     <Home className="text-white" size={30} />
                   </div>
-                  <span className="bg-primary text-white text-sm px-3 py-2 rounded-full font-bold shadow-lg">
-                    {loadingProperties ? '...' : properties.length}
-                  </span>
                 </div>
                 <h3 className="font-bold text-dark text-xl mb-2">Imóveis</h3>
                 <p className="text-dark-600 text-sm">Locação e venda</p>
@@ -126,13 +100,10 @@ export default function HomePage() {
 
             <Link href="/eventos" className="group">
               <div className="bg-accent-50 rounded-3xl p-6 border border-accent-200 group-hover:shadow-2xl group-hover:scale-105 transition-all duration-300">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-center mb-4">
                   <div className="w-16 h-16 bg-accent rounded-3xl flex items-center justify-center shadow-xl">
                     <Calendar className="text-white" size={30} />
                   </div>
-                  <span className="bg-accent text-white text-sm px-3 py-2 rounded-full font-bold shadow-lg">
-                    {loadingEvents ? '...' : events.length}
-                  </span>
                 </div>
                 <h3 className="font-bold text-dark text-xl mb-2">Eventos</h3>
                 <p className="text-dark-600 text-sm">Próximos eventos</p>
@@ -140,13 +111,10 @@ export default function HomePage() {
             </Link>
 
             <div className="bg-dark-50 rounded-3xl p-6 border border-dark-200">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-center mb-4">
                 <div className="w-16 h-16 bg-dark rounded-3xl flex items-center justify-center shadow-xl">
                   <Star className="text-white" size={30} />
                 </div>
-                <span className="bg-dark text-white text-sm px-3 py-2 rounded-full font-bold shadow-lg">
-                  +
-                </span>
               </div>
               <h3 className="font-bold text-dark text-xl mb-2">Informações</h3>
               <p className="text-dark-600 text-sm">Dados gerais</p>
@@ -165,17 +133,21 @@ export default function HomePage() {
           
           <div className="flex gap-5 overflow-x-auto pb-4 scrollbar-hide">
             {classifieds.slice(0, 5).map(item => (
-              <div key={item.id} className="flex-shrink-0 w-80 bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden hover:shadow-2xl hover:scale-105 transition-all duration-300">
+              <Link key={item.id} href={`/classificados/${item.id}`} className="flex-shrink-0 w-80 bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden hover:shadow-2xl hover:scale-105 transition-all duration-300">
                 {item.images?.[0] && (
                   <div className="h-48 bg-gray-100 overflow-hidden relative">
                     <img 
                       src={item.images[0]} 
                       alt={item.title}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.log('Erro ao carregar imagem:', item.images[0])
+                        e.currentTarget.src = 'https://via.placeholder.com/400x300/e5e7eb/9ca3af?text=Sem+Imagem'
+                      }}
+                      onLoad={() => {
+                        console.log('Imagem carregada com sucesso:', item.images[0])
+                      }}
                     />
-                    <button className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center hover:bg-white hover:scale-110 transition-all">
-                      <Heart size={18} className="text-gray-600" />
-                    </button>
                   </div>
                 )}
                 <div className="p-6">
@@ -213,7 +185,7 @@ export default function HomePage() {
                     )}
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
@@ -230,7 +202,7 @@ export default function HomePage() {
             
             <div className="space-y-5">
               {properties.slice(0, 3).map(item => (
-                <div key={item.id} className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-300">
+                <Link key={item.id} href={`/imoveis/${item.id}`} className="block bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-300">
                   <div className="flex">
                     {item.images?.[0] && (
                       <div className="w-44 h-40 bg-gray-100 flex-shrink-0 relative overflow-hidden">
@@ -238,10 +210,14 @@ export default function HomePage() {
                           src={item.images[0]} 
                           alt={item.title}
                           className="w-full h-full object-cover"
+                          onError={(e) => {
+                            console.log('Erro ao carregar imagem:', item.images[0])
+                            e.currentTarget.src = 'https://via.placeholder.com/400x300/e5e7eb/9ca3af?text=Sem+Imagem'
+                          }}
+                          onLoad={() => {
+                            console.log('Imagem carregada com sucesso:', item.images[0])
+                          }}
                         />
-                        <button className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur rounded-full flex items-center justify-center hover:scale-110 transition-all">
-                          <Heart size={16} className="text-gray-600" />
-                        </button>
                       </div>
                     )}
                     <div className="flex-1 p-6">
@@ -253,9 +229,6 @@ export default function HomePage() {
                           <span className="text-primary font-bold text-2xl">
                             R$ {item.price.toLocaleString()}
                           </span>
-                          {item.type === 'RENT' && (
-                            <span className="text-gray-500 text-sm">/mês</span>
-                          )}
                         </div>
                       </div>
                       <h3 className="font-bold text-dark text-xl mb-2 line-clamp-1">
@@ -265,15 +238,15 @@ export default function HomePage() {
                         {item.description}
                       </p>
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4 text-sm text-gray-600">
-                          <span className="flex items-center gap-1 bg-gray-100 px-3 py-1 rounded-full">
+                        <div className="flex items-center gap-2 text-sm text-gray-600 flex-wrap">
+                          <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full text-xs">
                             🛏️ {item.bedrooms}
                           </span>
-                          <span className="flex items-center gap-1 bg-gray-100 px-3 py-1 rounded-full">
+                          <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full text-xs">
                             🚿 {item.bathrooms}
                           </span>
                           {item.area && (
-                            <span className="flex items-center gap-1 bg-gray-100 px-3 py-1 rounded-full">
+                            <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full text-xs">
                               📐 {item.area}m²
                             </span>
                           )}
@@ -287,7 +260,7 @@ export default function HomePage() {
                       </div>
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>

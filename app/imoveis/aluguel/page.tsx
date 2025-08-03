@@ -3,6 +3,7 @@
 import { useProperties } from '@/hooks/useSupabase'
 import MobileHeader from '@/components/layout/MobileHeader'
 import { PROPERTY_TYPES } from '@/types/database'
+import Link from 'next/link'
 
 export default function AluguelPage() {
   const { properties, loading, error } = useProperties()
@@ -34,7 +35,7 @@ export default function AluguelPage() {
             </div>
 
             {aluguelProperties.map(item => (
-              <div key={item.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+              <Link key={item.id} href={`/imoveis/${item.id}`} className="block bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-800 mb-1">
@@ -47,14 +48,23 @@ export default function AluguelPage() {
                       <span className="bg-dark text-white px-2 py-1 rounded-full text-xs font-medium">
                         {PROPERTY_TYPES[item.type]}
                       </span>
-                      <span className="text-xs text-gray-500">
-                        {item.bedrooms}q • {item.bathrooms}b
-                        {item.area && ` • ${item.area}m²`}
-                      </span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="bg-gray-100 px-2 py-1 rounded-full text-xs text-gray-600">
+                          🛏️ {item.bedrooms}q
+                        </span>
+                        <span className="bg-gray-100 px-2 py-1 rounded-full text-xs text-gray-600">
+                          🚿 {item.bathrooms}b
+                        </span>
+                        {item.area && (
+                          <span className="bg-gray-100 px-2 py-1 rounded-full text-xs text-gray-600">
+                            📐 {item.area}m²
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-dark font-bold text-lg">
-                        R$ {item.price.toLocaleString()}/mês
+                        R$ {item.price.toLocaleString()}
                       </span>
                       <div className="text-xs text-gray-500 text-right">
                         {item.contact_name}
@@ -73,7 +83,7 @@ export default function AluguelPage() {
                     </div>
                   )}
                 </div>
-              </div>
+              </Link>
             ))}
 
             {aluguelProperties.length === 0 && (

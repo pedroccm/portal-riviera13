@@ -5,6 +5,7 @@ import { useClassifieds } from '@/hooks/useSupabase'
 import MobileHeader from '@/components/layout/MobileHeader'
 import { CLASSIFIED_CATEGORIES } from '@/types/database'
 import { Utensils, Zap, Waves, Package, Wind, TreePine, Car } from 'lucide-react'
+import Link from 'next/link'
 
 const categoryIcons = {
   IFOOD: Utensils,
@@ -46,19 +47,18 @@ export default function ClassificadosPage() {
         <div className="space-y-6">
           {/* Filtros por categoria */}
           <div>
-            <h2 className="text-lg font-semibold text-dark mb-4">Categorias</h2>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-4 gap-2">
               <button
                 onClick={() => setSelectedCategory(null)}
-                className={`p-4 rounded-xl border transition-all ${
+                className={`p-3 rounded-xl border transition-all ${
                   selectedCategory === null 
                     ? 'bg-dark text-white border-dark' 
                     : 'bg-white border-gray-200 hover:border-dark-200'
                 }`}
               >
                 <div className="text-center">
-                  <Package className={`w-6 h-6 mx-auto mb-2 ${selectedCategory === null ? 'text-white' : 'text-dark'}`} />
-                  <p className="text-sm font-medium">Todos</p>
+                  <Package className={`w-5 h-5 mx-auto mb-1 ${selectedCategory === null ? 'text-white' : 'text-dark'}`} />
+                  <p className="text-xs font-medium">Todos</p>
                   <p className="text-xs opacity-75">{classifieds.length}</p>
                 </div>
               </button>
@@ -73,15 +73,15 @@ export default function ClassificadosPage() {
                   <button
                     key={key}
                     onClick={() => setSelectedCategory(key)}
-                    className={`p-4 rounded-xl border transition-all ${
+                    className={`p-3 rounded-xl border transition-all ${
                       isSelected 
                         ? `${colors.bg} border-transparent` 
                         : 'bg-white border-gray-200 hover:border-gray-300'
                     }`}
                   >
                     <div className="text-center">
-                      <Icon className={`w-6 h-6 mx-auto mb-2 ${isSelected ? colors.icon : 'text-gray-400'}`} />
-                      <p className={`text-sm font-medium ${isSelected ? colors.text : 'text-gray-700'}`}>
+                      <Icon className={`w-5 h-5 mx-auto mb-1 ${isSelected ? colors.icon : 'text-gray-400'}`} />
+                      <p className={`text-xs font-medium ${isSelected ? colors.text : 'text-gray-700'}`}>
                         {label}
                       </p>
                       <p className={`text-xs ${isSelected ? colors.text : 'text-gray-500'} opacity-75`}>
@@ -119,7 +119,7 @@ export default function ClassificadosPage() {
               {filteredClassifieds.map(item => {
                 const colors = categoryColors[item.category as keyof typeof categoryColors]
                 return (
-                  <div key={item.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                  <Link key={item.id} href={`/classificados/${item.id}`} className="block bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <h3 className="font-semibold text-dark mb-1">
@@ -154,7 +154,7 @@ export default function ClassificadosPage() {
                         </div>
                       )}
                     </div>
-                  </div>
+                  </Link>
                 )
               })}
 
