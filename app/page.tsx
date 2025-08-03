@@ -110,15 +110,17 @@ export default function HomePage() {
               </div>
             </Link>
 
-            <div className="bg-dark-50 rounded-3xl p-6 border border-dark-200">
-              <div className="flex items-center justify-center mb-4">
-                <div className="w-16 h-16 bg-dark rounded-3xl flex items-center justify-center shadow-xl">
-                  <Star className="text-white" size={30} />
+            <Link href="/informacoes" className="group">
+              <div className="bg-dark-50 rounded-3xl p-6 border border-dark-200 group-hover:shadow-2xl group-hover:scale-105 transition-all duration-300">
+                <div className="flex items-center justify-center mb-4">
+                  <div className="w-16 h-16 bg-dark rounded-3xl flex items-center justify-center shadow-xl">
+                    <Star className="text-white" size={30} />
+                  </div>
                 </div>
+                <h3 className="font-bold text-dark text-xl mb-2">Informações</h3>
+                <p className="text-dark-600 text-sm">Dados gerais</p>
               </div>
-              <h3 className="font-bold text-dark text-xl mb-2">Informações</h3>
-              <p className="text-dark-600 text-sm">Dados gerais</p>
-            </div>
+            </Link>
           </div>
         </div>
 
