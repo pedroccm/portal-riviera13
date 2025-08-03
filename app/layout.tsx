@@ -1,12 +1,13 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import BottomNav from '@/components/layout/BottomNav'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Portal Riviera13',
-  description: 'Hello World Next.js App',
+  title: 'Portal Riviera 13',
+  description: 'Portal não oficial do condomínio Riviera 13',
 }
 
 export default function RootLayout({
@@ -15,8 +16,13 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>{children}</body>
+    <html lang="pt-BR">
+      <body className={inter.className}>
+        <div className="min-h-screen pb-20 bg-surface">
+          {children}
+        </div>
+        <BottomNav />
+      </body>
     </html>
   )
 }
