@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Building, TrendingUp, Calendar, Lock, Eye, EyeOff, Upload, X, Image } from 'lucide-react'
+import { Building, TrendingUp, Calendar, Lock, Eye, EyeOff, Upload, X, Image, Edit, Trash2, Plus, List } from 'lucide-react'
+import { Classified, Property, Event, CLASSIFIED_CATEGORIES, PROPERTY_TYPES } from '@/types/database'
 
 const ADMIN_PASSWORD = 'q1w2e3r4t5'
 
@@ -11,6 +12,13 @@ export default function AdminPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [activeTab, setActiveTab] = useState('imoveis')
+  const [viewMode, setViewMode] = useState<'create' | 'list'>('create')
+  const [editingItem, setEditingItem] = useState<any>(null)
+  
+  // Data lists
+  const [properties, setProperties] = useState<Property[]>([])
+  const [classifieds, setClassifieds] = useState<Classified[]>([])
+  const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
 
@@ -57,6 +65,28 @@ export default function AdminPage() {
   })
   const [eventImages, setEventImages] = useState<File[]>([])
   const [eventImagePreviews, setEventImagePreviews] = useState<string[]>([])
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchData()
+    }
+  }, [isAuthenticated])
+
+  const fetchData = async () => {
+    try {
+      const [propertiesRes, classifiedsRes, eventsRes] = await Promise.all([
+        supabase.from('properties').select('*').order('created_at', { ascending: false }),
+        supabase.from('classifieds').select('*').order('created_at', { ascending: false }),
+        supabase.from('events').select('*').order('created_at', { ascending: false })
+      ])
+      
+      if (propertiesRes.data) setProperties(propertiesRes.data)
+      if (classifiedsRes.data) setClassifieds(classifiedsRes.data)
+      if (eventsRes.data) setEvents(eventsRes.data)
+    } catch (err) {
+      showMessage('Erro ao carregar dados: ' + (err as Error).message, true)
+    }
+  }
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
@@ -164,18 +194,88 @@ export default function AdminPage() {
     }
   }
 
+  const handleDelete = async (id: string, type: 'property' | 'classified' | 'event') => {
+    if (!confirm('Tem certeza que deseja excluir este item?')) return
+    
+    setLoading(true)
+    try {
+      let table = ''
+      if (type === 'property') table = 'properties'
+      else if (type === 'classified') table = 'classifieds'  
+      else table = 'events'
+      
+      const { error } = await supabase.from(table).delete().eq('id', id)
+      if (error) throw error
+      
+      showMessage('Item excluído com sucesso!')
+      fetchData()
+    } catch (err) {
+      showMessage('Erro ao excluir: ' + (err as Error).message, true)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('pt-BR')
+  }
+
+  // Load item for editing
+  useEffect(() => {
+    if (editingItem) {
+      if (activeTab === 'imoveis') {
+        setPropertyForm({
+          title: editingItem.title || '',
+          description: editingItem.description || '',
+          type: editingItem.type || 'RENT',
+          price: editingItem.price?.toString() || '',
+          bedrooms: editingItem.bedrooms?.toString() || '',
+          bathrooms: editingItem.bathrooms?.toString() || '',
+          area: editingItem.area?.toString() || '',
+          contact_name: editingItem.contact_name || '',
+          contact_phone: editingItem.contact_phone || '',
+          apartment: editingItem.apartment || '',
+          block: editingItem.block || ''
+        })
+      } else if (activeTab === 'classificados') {
+        setClassifiedForm({
+          title: editingItem.title || '',
+          description: editingItem.description || '',
+          category: editingItem.category || 'GERAL',
+          price: editingItem.price?.toString() || '',
+          contact_name: editingItem.contact_name || '',
+          contact_phone: editingItem.contact_phone || '',
+          apartment: editingItem.apartment || '',
+          block: editingItem.block || ''
+        })
+      } else if (activeTab === 'eventos') {
+        const eventDate = editingItem.event_date ? new Date(editingItem.event_date).toISOString().slice(0, 16) : ''
+        setEventForm({
+          title: editingItem.title || '',
+          description: editingItem.description || '',
+          event_date: eventDate,
+          location: editingItem.location || '',
+          max_guests: editingItem.max_guests?.toString() || '',
+          contact_name: editingItem.contact_name || '',
+          contact_phone: editingItem.contact_phone || ''
+        })
+      }
+    }
+  }, [editingItem, activeTab])
+
   const handlePropertySubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     
     try {
-      let imageUrls: string[] = []
+      let imageUrls: string[] = editingItem?.images || []
       
       if (propertyImages.length > 0) {
-        imageUrls = await uploadImages(propertyImages, 'properties')
+        const newImages = await uploadImages(propertyImages, 'properties')
+        imageUrls = [...imageUrls, ...newImages]
       }
       
-      const { error } = await supabase.from('properties').insert({
+      const data = {
         title: propertyForm.title,
         description: propertyForm.description,
         type: propertyForm.type,
@@ -188,19 +288,30 @@ export default function AdminPage() {
         contact_phone: propertyForm.contact_phone || null,
         apartment: propertyForm.apartment || null,
         block: propertyForm.block || null
-      })
+      }
+
+      let error
+      if (editingItem) {
+        const result = await supabase.from('properties').update(data).eq('id', editingItem.id)
+        error = result.error
+      } else {
+        const result = await supabase.from('properties').insert(data)
+        error = result.error
+      }
 
       if (error) throw error
       
-      showMessage('Imóvel cadastrado com sucesso!')
+      showMessage(editingItem ? 'Imóvel atualizado com sucesso!' : 'Imóvel cadastrado com sucesso!')
       setPropertyForm({
         title: '', description: '', type: 'RENT', price: '', bedrooms: '', bathrooms: '',
         area: '', contact_name: '', contact_phone: '', apartment: '', block: ''
       })
       setPropertyImages([])
       setPropertyImagePreviews([])
+      setEditingItem(null)
+      fetchData() // Refresh data
     } catch (err) {
-      showMessage('Erro ao cadastrar imóvel: ' + (err as Error).message, true)
+      showMessage('Erro ao salvar imóvel: ' + (err as Error).message, true)
     } finally {
       setLoading(false)
     }
@@ -211,13 +322,14 @@ export default function AdminPage() {
     setLoading(true)
     
     try {
-      let imageUrls: string[] = []
+      let imageUrls: string[] = editingItem?.images || []
       
       if (classifiedImages.length > 0) {
-        imageUrls = await uploadImages(classifiedImages, 'classifieds')
+        const newImages = await uploadImages(classifiedImages, 'classifieds')
+        imageUrls = [...imageUrls, ...newImages]
       }
       
-      const { error } = await supabase.from('classifieds').insert({
+      const data = {
         title: classifiedForm.title,
         description: classifiedForm.description,
         category: classifiedForm.category,
@@ -227,19 +339,30 @@ export default function AdminPage() {
         contact_phone: classifiedForm.contact_phone || null,
         apartment: classifiedForm.apartment || null,
         block: classifiedForm.block || null
-      })
+      }
+
+      let error
+      if (editingItem) {
+        const result = await supabase.from('classifieds').update(data).eq('id', editingItem.id)
+        error = result.error
+      } else {
+        const result = await supabase.from('classifieds').insert(data)
+        error = result.error
+      }
 
       if (error) throw error
       
-      showMessage('Classificado cadastrado com sucesso!')
+      showMessage(editingItem ? 'Classificado atualizado com sucesso!' : 'Classificado cadastrado com sucesso!')
       setClassifiedForm({
         title: '', description: '', category: 'GERAL', price: '',
         contact_name: '', contact_phone: '', apartment: '', block: ''
       })
       setClassifiedImages([])
       setClassifiedImagePreviews([])
+      setEditingItem(null)
+      fetchData() // Refresh data
     } catch (err) {
-      showMessage('Erro ao cadastrar classificado: ' + (err as Error).message, true)
+      showMessage('Erro ao salvar classificado: ' + (err as Error).message, true)
     } finally {
       setLoading(false)
     }
@@ -250,13 +373,14 @@ export default function AdminPage() {
     setLoading(true)
     
     try {
-      let imageUrls: string[] = []
+      let imageUrls: string[] = editingItem?.images || []
       
       if (eventImages.length > 0) {
-        imageUrls = await uploadImages(eventImages, 'events')
+        const newImages = await uploadImages(eventImages, 'events')
+        imageUrls = [...imageUrls, ...newImages]
       }
       
-      const { error } = await supabase.from('events').insert({
+      const data = {
         title: eventForm.title,
         description: eventForm.description,
         event_date: eventForm.event_date,
@@ -265,19 +389,30 @@ export default function AdminPage() {
         max_guests: eventForm.max_guests ? parseInt(eventForm.max_guests) : null,
         contact_name: eventForm.contact_name,
         contact_phone: eventForm.contact_phone || null
-      })
+      }
+
+      let error
+      if (editingItem) {
+        const result = await supabase.from('events').update(data).eq('id', editingItem.id)
+        error = result.error
+      } else {
+        const result = await supabase.from('events').insert(data)
+        error = result.error
+      }
 
       if (error) throw error
       
-      showMessage('Evento cadastrado com sucesso!')
+      showMessage(editingItem ? 'Evento atualizado com sucesso!' : 'Evento cadastrado com sucesso!')
       setEventForm({
         title: '', description: '', event_date: '', location: '',
         max_guests: '', contact_name: '', contact_phone: ''
       })
       setEventImages([])
       setEventImagePreviews([])
+      setEditingItem(null)
+      fetchData() // Refresh data
     } catch (err) {
-      showMessage('Erro ao cadastrar evento: ' + (err as Error).message, true)
+      showMessage('Erro ao salvar evento: ' + (err as Error).message, true)
     } finally {
       setLoading(false)
     }
@@ -383,6 +518,34 @@ export default function AdminPage() {
         </div>
       </div>
 
+      {/* View Mode Toggle */}
+      <div className="bg-gray-50 border-b border-gray-200 px-4 py-3">
+        <div className="flex gap-2">
+          <button
+            onClick={() => { setViewMode('create'); setEditingItem(null); }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium ${
+              viewMode === 'create'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <Plus size={16} />
+            Criar Novo
+          </button>
+          <button
+            onClick={() => setViewMode('list')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium ${
+              viewMode === 'list'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <List size={16} />
+            Listar Existentes
+          </button>
+        </div>
+      </div>
+
       <div className="px-4 py-6">
         {message && (
           <div className={`mb-4 p-4 rounded-lg ${
@@ -394,10 +557,80 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Property Form */}
-        {activeTab === 'imoveis' && (
+        {/* Property Content */}
+        {activeTab === 'imoveis' && viewMode === 'list' && (
           <div className="bg-white rounded-xl p-6 shadow-sm">
-            <h2 className="text-lg font-semibold mb-6">Cadastrar Imóvel</h2>
+            <h2 className="text-lg font-semibold mb-6">Imóveis Cadastrados ({properties.length})</h2>
+            <div className="space-y-4">
+              {properties.map(item => (
+                <div key={item.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          item.type === 'RENT' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                        }`}>
+                          {PROPERTY_TYPES[item.type]}
+                        </span>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          item.status === 'AVAILABLE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                        }`}>
+                          {item.status === 'AVAILABLE' ? 'Disponível' : 'Indisponível'}
+                        </span>
+                      </div>
+                      <h3 className="font-semibold text-gray-800 mb-1">{item.title}</h3>
+                      <p className="text-sm text-gray-600 mb-2 line-clamp-2">{item.description}</p>
+                      <div className="flex items-center gap-4 text-sm text-gray-500">
+                        <span>R$ {item.price.toLocaleString()}</span>
+                        <span>{item.bedrooms}q • {item.bathrooms}b</span>
+                        {item.area && <span>{item.area}m²</span>}
+                        <span>Por: {item.contact_name}</span>
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        Criado em: {formatDate(item.created_at)}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 ml-4">
+                      <button
+                        onClick={() => { setEditingItem(item); setViewMode('create'); }}
+                        className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                        title="Editar"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(item.id, 'property')}
+                        className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                        title="Excluir"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {properties.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  Nenhum imóvel cadastrado ainda
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Property Form */}
+        {activeTab === 'imoveis' && viewMode === 'create' && (
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            <h2 className="text-lg font-semibold mb-6">
+              {editingItem ? 'Editar Imóvel' : 'Cadastrar Imóvel'}
+            </h2>
+            {editingItem && (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-700">
+                  📝 Editando: <strong>{editingItem.title}</strong>
+                </p>
+              </div>
+            )}
             <form onSubmit={handlePropertySubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input
@@ -551,21 +784,112 @@ export default function AdminPage() {
                 )}
               </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors"
-              >
-                {loading ? 'Cadastrando...' : 'Cadastrar Imóvel'}
-              </button>
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                >
+                  {loading ? 'Salvando...' : (editingItem ? 'Atualizar Imóvel' : 'Cadastrar Imóvel')}
+                </button>
+                {editingItem && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingItem(null)
+                      setPropertyForm({
+                        title: '', description: '', type: 'RENT', price: '', bedrooms: '', bathrooms: '',
+                        area: '', contact_name: '', contact_phone: '', apartment: '', block: ''
+                      })
+                      setPropertyImages([])
+                      setPropertyImagePreviews([])
+                    }}
+                    className="px-6 bg-gray-500 text-white py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                )}
+              </div>
             </form>
           </div>
         )}
 
-        {/* Classified Form */}
-        {activeTab === 'classificados' && (
+        {/* Classified Content */}
+        {activeTab === 'classificados' && viewMode === 'list' && (
           <div className="bg-white rounded-xl p-6 shadow-sm">
-            <h2 className="text-lg font-semibold mb-6">Cadastrar Classificado</h2>
+            <h2 className="text-lg font-semibold mb-6">Classificados Cadastrados ({classifieds.length})</h2>
+            <div className="space-y-4">
+              {classifieds.map(item => (
+                <div key={item.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-medium">
+                          {CLASSIFIED_CATEGORIES[item.category]}
+                        </span>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          item.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                        }`}>
+                          {item.status === 'ACTIVE' ? 'Ativo' : 'Inativo'}
+                        </span>
+                        {item.price && (
+                          <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
+                            R$ {item.price.toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="font-semibold text-gray-800 mb-1">{item.title}</h3>
+                      <p className="text-sm text-gray-600 mb-2 line-clamp-2">{item.description}</p>
+                      <div className="flex items-center gap-4 text-sm text-gray-500">
+                        <span>Por: {item.contact_name}</span>
+                        {item.apartment && <span>Apt {item.apartment}</span>}
+                        {item.block && <span>{item.block}</span>}
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        Criado em: {formatDate(item.created_at)}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 ml-4">
+                      <button
+                        onClick={() => { setEditingItem(item); setViewMode('create'); }}
+                        className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                        title="Editar"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(item.id, 'classified')}
+                        className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                        title="Excluir"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {classifieds.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  Nenhum classificado cadastrado ainda
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Classified Form */}
+        {activeTab === 'classificados' && viewMode === 'create' && (
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            <h2 className="text-lg font-semibold mb-6">
+              {editingItem ? 'Editar Classificado' : 'Cadastrar Classificado'}
+            </h2>
+            {editingItem && (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-700">
+                  📝 Editando: <strong>{editingItem.title}</strong>
+                </p>
+              </div>
+            )}
             <form onSubmit={handleClassifiedSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input
@@ -697,21 +1021,114 @@ export default function AdminPage() {
                 )}
               </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors"
-              >
-                {loading ? 'Cadastrando...' : 'Cadastrar Classificado'}
-              </button>
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                >
+                  {loading ? 'Salvando...' : (editingItem ? 'Atualizar Classificado' : 'Cadastrar Classificado')}
+                </button>
+                {editingItem && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingItem(null)
+                      setClassifiedForm({
+                        title: '', description: '', category: 'GERAL', price: '',
+                        contact_name: '', contact_phone: '', apartment: '', block: ''
+                      })
+                      setClassifiedImages([])
+                      setClassifiedImagePreviews([])
+                    }}
+                    className="px-6 bg-gray-500 text-white py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                )}
+              </div>
             </form>
           </div>
         )}
 
-        {/* Event Form */}
-        {activeTab === 'eventos' && (
+        {/* Event Content */}
+        {activeTab === 'eventos' && viewMode === 'list' && (
           <div className="bg-white rounded-xl p-6 shadow-sm">
-            <h2 className="text-lg font-semibold mb-6">Cadastrar Evento</h2>
+            <h2 className="text-lg font-semibold mb-6">Eventos Cadastrados ({events.length})</h2>
+            <div className="space-y-4">
+              {events.map(item => (
+                <div key={item.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          item.status === 'UPCOMING' ? 'bg-blue-100 text-blue-700' :
+                          item.status === 'ONGOING' ? 'bg-yellow-100 text-yellow-700' :
+                          item.status === 'FINISHED' ? 'bg-green-100 text-green-700' :
+                          'bg-red-100 text-red-700'
+                        }`}>
+                          {item.status === 'UPCOMING' ? 'Próximo' :
+                           item.status === 'ONGOING' ? 'Em Andamento' :
+                           item.status === 'FINISHED' ? 'Finalizado' : 'Cancelado'}
+                        </span>
+                        {item.max_guests && (
+                          <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-medium">
+                            Máx: {item.max_guests} pessoas
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="font-semibold text-gray-800 mb-1">{item.title}</h3>
+                      <p className="text-sm text-gray-600 mb-2 line-clamp-2">{item.description}</p>
+                      <div className="flex items-center gap-4 text-sm text-gray-500">
+                        <span>📅 {formatDate(item.event_date)}</span>
+                        {item.location && <span>📍 {item.location}</span>}
+                        <span>Por: {item.contact_name}</span>
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        Criado em: {formatDate(item.created_at)}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 ml-4">
+                      <button
+                        onClick={() => { setEditingItem(item); setViewMode('create'); }}
+                        className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                        title="Editar"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(item.id, 'event')}
+                        className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                        title="Excluir"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {events.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  Nenhum evento cadastrado ainda
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Event Form */}
+        {activeTab === 'eventos' && viewMode === 'create' && (
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            <h2 className="text-lg font-semibold mb-6">
+              {editingItem ? 'Editar Evento' : 'Cadastrar Evento'}
+            </h2>
+            {editingItem && (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-700">
+                  📝 Editando: <strong>{editingItem.title}</strong>
+                </p>
+              </div>
+            )}
             <form onSubmit={handleEventSubmit} className="space-y-4">
               <input
                 type="text"
@@ -829,13 +1246,32 @@ export default function AdminPage() {
                 )}
               </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors"
-              >
-                {loading ? 'Cadastrando...' : 'Cadastrar Evento'}
-              </button>
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                >
+                  {loading ? 'Salvando...' : (editingItem ? 'Atualizar Evento' : 'Cadastrar Evento')}
+                </button>
+                {editingItem && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingItem(null)
+                      setEventForm({
+                        title: '', description: '', event_date: '', location: '',
+                        max_guests: '', contact_name: '', contact_phone: ''
+                      })
+                      setEventImages([])
+                      setEventImagePreviews([])
+                    }}
+                    className="px-6 bg-gray-500 text-white py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                )}
+              </div>
             </form>
           </div>
         )}

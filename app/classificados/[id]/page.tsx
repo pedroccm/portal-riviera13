@@ -14,6 +14,8 @@ export default function ClassifiedDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [touchStart, setTouchStart] = useState<number | null>(null)
+  const [touchEnd, setTouchEnd] = useState<number | null>(null)
 
   useEffect(() => {
     if (params.id) {
@@ -54,6 +56,33 @@ export default function ClassifiedDetailPage() {
     }
   }
 
+  // Touch handlers for swipe
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null)
+    setTouchStart(e.targetTouches[0].clientX)
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return
+    
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > 50
+    const isRightSwipe = distance < -50
+    
+    if (classified && classified.images && classified.images.length > 1) {
+      if (isLeftSwipe && currentImageIndex < classified.images.length - 1) {
+        setCurrentImageIndex(currentImageIndex + 1)
+      }
+      if (isRightSwipe && currentImageIndex > 0) {
+        setCurrentImageIndex(currentImageIndex - 1)
+      }
+    }
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen bg-surface">
@@ -86,11 +115,16 @@ export default function ClassifiedDetailPage() {
       {/* Images Gallery */}
       {classified.images && classified.images.length > 0 && (
         <div className="relative">
-          <div className="h-64 bg-gray-200 overflow-hidden">
+          <div 
+            className="h-64 bg-gray-200 overflow-hidden cursor-pointer"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
             <img 
               src={classified.images[currentImageIndex]} 
               alt={classified.title}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover select-none"
               onError={(e) => {
                 console.log('Erro ao carregar imagem:', classified.images[currentImageIndex])
                 e.currentTarget.src = 'https://via.placeholder.com/800x600/e5e7eb/9ca3af?text=Imagem+Indisponível'
@@ -98,21 +132,50 @@ export default function ClassifiedDetailPage() {
               onLoad={() => {
                 console.log('Imagem carregada com sucesso:', classified.images[currentImageIndex])
               }}
+              draggable={false}
             />
           </div>
           
           {classified.images.length > 1 && (
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
-              {classified.images.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentImageIndex(index)}
-                  className={`w-2 h-2 rounded-full transition-all ${
-                    index === currentImageIndex ? 'bg-white' : 'bg-white/50'
-                  }`}
-                />
-              ))}
-            </div>
+            <>
+              {/* Navigation arrows */}
+              <button
+                onClick={() => setCurrentImageIndex(Math.max(0, currentImageIndex - 1))}
+                className={`absolute left-4 top-1/2 transform -translate-y-1/2 w-10 h-10 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-all ${
+                  currentImageIndex === 0 ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+                disabled={currentImageIndex === 0}
+              >
+                ‹
+              </button>
+              <button
+                onClick={() => setCurrentImageIndex(Math.min(classified.images.length - 1, currentImageIndex + 1))}
+                className={`absolute right-4 top-1/2 transform -translate-y-1/2 w-10 h-10 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-all ${
+                  currentImageIndex === classified.images.length - 1 ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+                disabled={currentImageIndex === classified.images.length - 1}
+              >
+                ›
+              </button>
+              
+              {/* Image counter */}
+              <div className="absolute top-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                {currentImageIndex + 1} / {classified.images.length}
+              </div>
+              
+              {/* Dots indicator */}
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
+                {classified.images.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentImageIndex(index)}
+                    className={`w-2 h-2 rounded-full transition-all ${
+                      index === currentImageIndex ? 'bg-white' : 'bg-white/50'
+                    }`}
+                  />
+                ))}
+              </div>
+            </>
           )}
 
         </div>

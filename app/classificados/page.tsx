@@ -138,11 +138,6 @@ export default function ClassificadosPage() {
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-dark-600">
-                          {item.contact_name}
-                          {item.apartment && ` • Apt ${item.apartment}`}
-                          {item.block && ` • ${item.block}`}
-                        </div>
                       </div>
                       {item.images?.[0] && (
                         <div className="w-20 h-20 bg-gray-200 rounded-lg ml-3 overflow-hidden">

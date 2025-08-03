@@ -57,15 +57,15 @@ export default function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className="flex flex-col items-center py-2 px-3 transition-all duration-300 relative"
+              className="flex items-center justify-center py-3 px-4 transition-all duration-300 relative"
             >
-              <div className={`p-2 rounded-2xl transition-all duration-300 ${
+              <div className={`p-3 rounded-2xl transition-all duration-300 ${
                 isActive 
                   ? `${item.bgColor} shadow-lg` 
                   : 'bg-gray-100'
               }`}>
                 <Icon 
-                  size={20} 
+                  size={24} 
                   className={`${
                     isActive 
                       ? 'text-white' 
@@ -73,15 +73,6 @@ export default function BottomNav() {
                   }`}
                 />
               </div>
-              <span 
-                className={`text-xs font-medium mt-1 transition-colors duration-300 ${
-                  isActive 
-                    ? item.activeColor 
-                    : 'text-gray-400'
-                }`}
-              >
-                {item.label}
-              </span>
             </Link>
           )
         })}

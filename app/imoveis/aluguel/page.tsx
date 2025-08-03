@@ -28,11 +28,6 @@ export default function AluguelPage() {
 
         {!loading && !error && (
           <div className="space-y-4">
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-              <p className="text-gray-600 text-center">
-                {aluguelProperties.length} imóveis para aluguel
-              </p>
-            </div>
 
             {aluguelProperties.map(item => (
               <Link key={item.id} href={`/imoveis/${item.id}`} className="block bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
@@ -45,32 +40,17 @@ export default function AluguelPage() {
                       {item.description}
                     </p>
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="bg-dark text-white px-2 py-1 rounded-full text-xs font-medium">
-                        {PROPERTY_TYPES[item.type]}
+                      <span className="bg-gray-100 px-2 py-1 rounded-full text-xs text-gray-600">
+                        🛏️ {item.bedrooms}q
                       </span>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="bg-gray-100 px-2 py-1 rounded-full text-xs text-gray-600">
-                          🛏️ {item.bedrooms}q
-                        </span>
-                        <span className="bg-gray-100 px-2 py-1 rounded-full text-xs text-gray-600">
-                          🚿 {item.bathrooms}b
-                        </span>
-                        {item.area && (
-                          <span className="bg-gray-100 px-2 py-1 rounded-full text-xs text-gray-600">
-                            📐 {item.area}m²
-                          </span>
-                        )}
-                      </div>
+                      <span className="bg-gray-100 px-2 py-1 rounded-full text-xs text-gray-600">
+                        🚿 {item.bathrooms}b
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-dark font-bold text-lg">
                         R$ {item.price.toLocaleString()}
                       </span>
-                      <div className="text-xs text-gray-500 text-right">
-                        {item.contact_name}
-                        {item.apartment && <div>Apt {item.apartment}</div>}
-                        {item.block && <div>{item.block}</div>}
-                      </div>
                     </div>
                   </div>
                   {item.images?.[0] && (

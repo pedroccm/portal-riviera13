@@ -125,15 +125,15 @@ export default function HomePage() {
         {/* Destaques Premium */}
         <div>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-dark">✨ Destaques</h2>
+            <h2 className="text-2xl font-bold text-dark">Destaques</h2>
             <Link href="/classificados" className="bg-secondary text-white px-4 py-2 rounded-full font-semibold hover:shadow-lg transition-all">
               Ver todos →
             </Link>
           </div>
           
-          <div className="flex gap-5 overflow-x-auto pb-4 scrollbar-hide">
+          <div className="flex gap-5 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory" style={{scrollBehavior: 'smooth'}}>
             {classifieds.slice(0, 5).map(item => (
-              <Link key={item.id} href={`/classificados/${item.id}`} className="flex-shrink-0 w-80 bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden hover:shadow-2xl hover:scale-105 transition-all duration-300">
+              <Link key={item.id} href={`/classificados/${item.id}`} className="flex-shrink-0 w-80 bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden hover:shadow-2xl hover:scale-105 transition-all duration-300 snap-center">
                 {item.images?.[0] && (
                   <div className="h-48 bg-gray-100 overflow-hidden relative">
                     <img 
@@ -167,23 +167,6 @@ export default function HomePage() {
                   <p className="text-gray-600 text-sm line-clamp-2 mb-4">
                     {item.description}
                   </p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-gray-200 to-gray-300 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-bold text-gray-700">
-                          {item.contact_name.charAt(0)}
-                        </span>
-                      </div>
-                      <span className="text-dark text-sm font-semibold">
-                        {item.contact_name}
-                      </span>
-                    </div>
-                    {item.apartment && (
-                      <span className="text-gray-500 text-xs bg-gray-100 px-3 py-1 rounded-full font-medium">
-                        Apt {item.apartment}
-                      </span>
-                    )}
-                  </div>
                 </div>
               </Link>
             ))}
@@ -194,7 +177,7 @@ export default function HomePage() {
         {properties.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-dark">🏠 Imóveis Premium</h2>
+              <h2 className="text-2xl font-bold text-dark">Locações</h2>
               <Link href="/imoveis" className="bg-primary text-white px-4 py-2 rounded-full font-semibold hover:shadow-lg transition-all">
                 Ver todos →
               </Link>
@@ -238,23 +221,12 @@ export default function HomePage() {
                         {item.description}
                       </p>
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-sm text-gray-600 flex-wrap">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
                           <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full text-xs">
                             🛏️ {item.bedrooms}
                           </span>
                           <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full text-xs">
                             🚿 {item.bathrooms}
-                          </span>
-                          {item.area && (
-                            <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full text-xs">
-                              📐 {item.area}m²
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Phone size={16} className="text-gray-400" />
-                          <span className="text-dark text-sm font-semibold">
-                            {item.contact_name}
                           </span>
                         </div>
                       </div>
