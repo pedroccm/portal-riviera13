@@ -112,7 +112,7 @@ export default function ClassificadosPage() {
               <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
                 <p className="text-dark-600 text-center">
                   {filteredClassifieds.length} classificados 
-                  {selectedCategory ? ` em ${CLASSIFIED_CATEGORIES[selectedCategory]}` : ' encontrados'}
+                  {selectedCategory ? ` em ${CLASSIFIED_CATEGORIES[selectedCategory as keyof typeof CLASSIFIED_CATEGORIES]}` : ' encontrados'}
                 </p>
               </div>
 
@@ -162,7 +162,7 @@ export default function ClassificadosPage() {
                 <div className="text-center py-8">
                   <p className="text-dark-600">
                     Nenhum classificado encontrado
-                    {selectedCategory && ` na categoria ${CLASSIFIED_CATEGORIES[selectedCategory]}`}
+                    {selectedCategory && ` na categoria ${CLASSIFIED_CATEGORIES[selectedCategory as keyof typeof CLASSIFIED_CATEGORIES]}`}
                   </p>
                 </div>
               )}
