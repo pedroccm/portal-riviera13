@@ -81,8 +81,7 @@ export default function HomePage() {
                     <TrendingUp className="text-white" size={30} />
                   </div>
                 </div>
-                <h3 className="font-bold text-dark text-xl mb-2">Classificados</h3>
-                <p className="text-dark-600 text-sm">Produtos e serviços</p>
+                <h3 className="font-bold text-dark text-xl">Classificados</h3>
               </div>
             </Link>
 
@@ -93,8 +92,7 @@ export default function HomePage() {
                     <Home className="text-white" size={30} />
                   </div>
                 </div>
-                <h3 className="font-bold text-dark text-xl mb-2">Imóveis</h3>
-                <p className="text-dark-600 text-sm">Locação e venda</p>
+                <h3 className="font-bold text-dark text-xl">Imóveis</h3>
               </div>
             </Link>
 
@@ -105,8 +103,7 @@ export default function HomePage() {
                     <Calendar className="text-white" size={30} />
                   </div>
                 </div>
-                <h3 className="font-bold text-dark text-xl mb-2">Eventos</h3>
-                <p className="text-dark-600 text-sm">Próximos eventos</p>
+                <h3 className="font-bold text-dark text-xl">Eventos</h3>
               </div>
             </Link>
 
@@ -117,8 +114,7 @@ export default function HomePage() {
                     <Star className="text-white" size={30} />
                   </div>
                 </div>
-                <h3 className="font-bold text-dark text-xl mb-2">Informações</h3>
-                <p className="text-dark-600 text-sm">Dados gerais</p>
+                <h3 className="font-bold text-dark text-xl">Informações</h3>
               </div>
             </Link>
           </div>
@@ -206,10 +202,7 @@ export default function HomePage() {
                       </div>
                     )}
                     <div className="flex-1 p-6">
-                      <div className="flex items-start justify-between mb-3">
-                        <span className="bg-primary text-white text-xs px-3 py-2 rounded-full font-bold">
-                          {PROPERTY_TYPES[item.type]}
-                        </span>
+                      <div className="flex items-start justify-end mb-3">
                         <div className="text-right">
                           <span className="text-primary font-bold text-2xl">
                             R$ {item.price.toLocaleString()}
