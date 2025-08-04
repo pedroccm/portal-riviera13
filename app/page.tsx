@@ -15,7 +15,7 @@ export default function HomePage() {
       {/* Header */}
       <div style={{ 
         backgroundColor: 'white', 
-        padding: '48px 16px 24px 16px', 
+        padding: '32px 16px 16px 16px', 
         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' 
       }}>
         <div style={{ 
@@ -71,7 +71,7 @@ export default function HomePage() {
       <div style={{ padding: '32px 16px', display: 'flex', flexDirection: 'column', gap: '32px' }}>
         {/* Categorias Premium */}
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Explorar Categorias</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Categorias</h2>
           
           <div className="grid grid-cols-2 gap-5">
             <Link href="/classificados" className="group">
@@ -124,7 +124,7 @@ export default function HomePage() {
         <div>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-dark">Destaques</h2>
-            <Link href="/classificados" className="bg-secondary text-white px-4 py-2 rounded-full font-semibold hover:shadow-lg transition-all">
+            <Link href="/classificados" className="bg-secondary text-white px-3 py-1.5 rounded-full text-sm font-medium hover:shadow-md transition-all">
               Ver todos →
             </Link>
           </div>
@@ -176,7 +176,7 @@ export default function HomePage() {
           <div>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-dark">Locações</h2>
-              <Link href="/imoveis" className="bg-primary text-white px-4 py-2 rounded-full font-semibold hover:shadow-lg transition-all">
+              <Link href="/imoveis" className="bg-primary text-white px-3 py-1.5 rounded-full text-sm font-medium hover:shadow-md transition-all">
                 Ver todos →
               </Link>
             </div>
@@ -202,16 +202,16 @@ export default function HomePage() {
                       </div>
                     )}
                     <div className="flex-1 p-6">
-                      <div className="flex items-start justify-end mb-3">
-                        <div className="text-right">
-                          <span className="text-primary font-bold text-2xl">
+                      <h3 className="font-bold text-dark text-xl mb-2 line-clamp-1">
+                        {item.title}
+                      </h3>
+                      <div className="flex items-start justify-start mb-3">
+                        <div className="text-left">
+                          <span className="text-primary font-bold text-lg">
                             R$ {item.price.toLocaleString()}
                           </span>
                         </div>
                       </div>
-                      <h3 className="font-bold text-dark text-xl mb-2 line-clamp-1">
-                        {item.title}
-                      </h3>
                       <p className="text-gray-600 text-sm line-clamp-2 mb-4">
                         {item.description}
                       </p>
