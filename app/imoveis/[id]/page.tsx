@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Property, PROPERTY_TYPES } from '@/types/database'
 import MobileHeader from '@/components/layout/MobileHeader'
-import { Phone, MessageCircle, MapPin, Calendar, Share2, Heart, Bed, Bath, Square } from 'lucide-react'
+import { Phone, MessageCircle, MapPin, Calendar, Share2, Heart, Bed, Bath, Square, Instagram } from 'lucide-react'
 
 export default function PropertyDetailPage() {
   const params = useParams()
@@ -53,6 +53,21 @@ export default function PropertyDetailPage() {
   const handleCall = () => {
     if (property?.contact_phone) {
       window.open(`tel:${property.contact_phone}`, '_self')
+    }
+  }
+
+  const handleInstagram = () => {
+    if (property?.instagram) {
+      let instagramUrl = property.instagram
+      
+      // Se não começar com http, assumir que é um handle
+      if (!instagramUrl.startsWith('http')) {
+        // Remover @ se existir
+        const handle = instagramUrl.startsWith('@') ? instagramUrl.slice(1) : instagramUrl
+        instagramUrl = `https://instagram.com/${handle}`
+      }
+      
+      window.open(instagramUrl, '_blank')
     }
   }
 
@@ -292,28 +307,45 @@ export default function PropertyDetailPage() {
                   {property.contact_phone}
                 </p>
               )}
+              {property.instagram && (
+                <p className="text-purple-600 text-sm">
+                  {property.instagram.startsWith('@') ? property.instagram : `@${property.instagram}`}
+                </p>
+              )}
             </div>
           </div>
 
-          {property.contact_phone && (
-            <div className="flex gap-3">
+          <div className="space-y-3">
+            {property.contact_phone && (
+              <div className="flex gap-3">
+                <button
+                  onClick={handleWhatsApp}
+                  className="flex-1 bg-green-500 text-white py-3 px-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-green-600 transition-colors"
+                >
+                  <MessageCircle size={20} />
+                  WhatsApp
+                </button>
+                
+                <button
+                  onClick={handleCall}
+                  className="flex-1 bg-primary text-white py-3 px-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-primary-600 transition-colors"
+                >
+                  <Phone size={20} />
+                  Ligar
+                </button>
+              </div>
+            )}
+            
+            {property.instagram && (
               <button
-                onClick={handleWhatsApp}
-                className="flex-1 bg-green-500 text-white py-3 px-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-green-600 transition-colors"
+                onClick={handleInstagram}
+                className="w-full bg-purple-600 text-white py-3 px-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-purple-700 transition-colors"
               >
-                <MessageCircle size={20} />
-                WhatsApp
+                <Instagram size={20} />
+                {property.instagram.startsWith('@') ? property.instagram : `@${property.instagram}`}
               </button>
-              
-              <button
-                onClick={handleCall}
-                className="flex-1 bg-primary text-white py-3 px-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-primary-600 transition-colors"
-              >
-                <Phone size={20} />
-                Ligar
-              </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </main>

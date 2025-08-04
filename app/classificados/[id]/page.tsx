@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Classified, CLASSIFIED_CATEGORIES } from '@/types/database'
 import MobileHeader from '@/components/layout/MobileHeader'
-import { Phone, MessageCircle, MapPin, Calendar, Share2, Heart } from 'lucide-react'
+import { Phone, MessageCircle, MapPin, Calendar, Share2, Heart, Instagram } from 'lucide-react'
 
 export default function ClassifiedDetailPage() {
   const params = useParams()
@@ -53,6 +53,21 @@ export default function ClassifiedDetailPage() {
   const handleCall = () => {
     if (classified?.contact_phone) {
       window.open(`tel:${classified.contact_phone}`, '_self')
+    }
+  }
+
+  const handleInstagram = () => {
+    if (classified?.instagram) {
+      let instagramUrl = classified.instagram
+      
+      // Se não começar com http, assumir que é um handle
+      if (!instagramUrl.startsWith('http')) {
+        // Remover @ se existir
+        const handle = instagramUrl.startsWith('@') ? instagramUrl.slice(1) : instagramUrl
+        instagramUrl = `https://instagram.com/${handle}`
+      }
+      
+      window.open(instagramUrl, '_blank')
     }
   }
 
@@ -240,28 +255,45 @@ export default function ClassifiedDetailPage() {
                   {classified.contact_phone}
                 </p>
               )}
+              {classified.instagram && (
+                <p className="text-purple-600 text-sm">
+                  {classified.instagram.startsWith('@') ? classified.instagram : `@${classified.instagram}`}
+                </p>
+              )}
             </div>
           </div>
 
-          {classified.contact_phone && (
-            <div className="flex gap-3">
+          <div className="space-y-3">
+            {classified.contact_phone && (
+              <div className="flex gap-3">
+                <button
+                  onClick={handleWhatsApp}
+                  className="flex-1 bg-green-500 text-white py-3 px-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-green-600 transition-colors"
+                >
+                  <MessageCircle size={20} />
+                  WhatsApp
+                </button>
+                
+                <button
+                  onClick={handleCall}
+                  className="flex-1 bg-primary text-white py-3 px-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-primary-600 transition-colors"
+                >
+                  <Phone size={20} />
+                  Ligar
+                </button>
+              </div>
+            )}
+            
+            {classified.instagram && (
               <button
-                onClick={handleWhatsApp}
-                className="flex-1 bg-green-500 text-white py-3 px-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-green-600 transition-colors"
+                onClick={handleInstagram}
+                className="w-full bg-purple-600 text-white py-3 px-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-purple-700 transition-colors"
               >
-                <MessageCircle size={20} />
-                WhatsApp
+                <Instagram size={20} />
+                {classified.instagram.startsWith('@') ? classified.instagram : `@${classified.instagram}`}
               </button>
-              
-              <button
-                onClick={handleCall}
-                className="flex-1 bg-primary text-white py-3 px-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-primary-600 transition-colors"
-              >
-                <Phone size={20} />
-                Ligar
-              </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </main>

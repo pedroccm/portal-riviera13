@@ -15,14 +15,14 @@ export default function HomePage() {
       {/* Header */}
       <div style={{ 
         backgroundColor: 'white', 
-        padding: '32px 16px 16px 16px', 
+        padding: '16px 16px 8px 16px', 
         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' 
       }}>
         <div style={{ 
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'space-between', 
-          marginBottom: '24px' 
+          marginBottom: '16px' 
         }}>
           <div>
             <h1 style={{ 
@@ -69,55 +69,51 @@ export default function HomePage() {
       </div>
 
       <div style={{ padding: '32px 16px', display: 'flex', flexDirection: 'column', gap: '32px' }}>
-        {/* Categorias Premium */}
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Categorias</h2>
-          
-          <div className="grid grid-cols-2 gap-5">
-            <Link href="/classificados" className="group">
-              <div className="bg-secondary-50 rounded-3xl p-6 border border-secondary-200 group-hover:shadow-2xl group-hover:scale-105 transition-all duration-300">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="w-16 h-16 bg-secondary rounded-3xl flex items-center justify-center shadow-xl">
-                    <TrendingUp className="text-white" size={30} />
-                  </div>
+        {/* Categorias */}
+        <div className="grid grid-cols-2 gap-3">
+          <Link href="/classificados" className="group">
+            <div className="bg-secondary-50 rounded-2xl p-4 border border-secondary-200 group-hover:shadow-lg group-hover:border-secondary-300 transition-all duration-200 text-center">
+              <div className="flex items-center justify-center mb-3">
+                <div className="w-12 h-12 bg-secondary rounded-2xl flex items-center justify-center">
+                  <TrendingUp className="text-white" size={20} />
                 </div>
-                <h3 className="font-bold text-dark text-xl">Classificados</h3>
               </div>
-            </Link>
+              <h3 className="font-medium text-gray-700 text-sm">Classificados</h3>
+            </div>
+          </Link>
 
-            <Link href="/imoveis" className="group">
-              <div className="bg-primary-50 rounded-3xl p-6 border border-primary-200 group-hover:shadow-2xl group-hover:scale-105 transition-all duration-300">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="w-16 h-16 bg-primary rounded-3xl flex items-center justify-center shadow-xl">
-                    <Home className="text-white" size={30} />
-                  </div>
+          <Link href="/imoveis" className="group">
+            <div className="bg-primary-50 rounded-2xl p-4 border border-primary-200 group-hover:shadow-lg group-hover:border-primary-300 transition-all duration-200 text-center">
+              <div className="flex items-center justify-center mb-3">
+                <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center">
+                  <Home className="text-white" size={20} />
                 </div>
-                <h3 className="font-bold text-dark text-xl">Imóveis</h3>
               </div>
-            </Link>
+              <h3 className="font-medium text-gray-700 text-sm">Imóveis</h3>
+            </div>
+          </Link>
 
-            <Link href="/eventos" className="group">
-              <div className="bg-accent-50 rounded-3xl p-6 border border-accent-200 group-hover:shadow-2xl group-hover:scale-105 transition-all duration-300">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="w-16 h-16 bg-accent rounded-3xl flex items-center justify-center shadow-xl">
-                    <Calendar className="text-white" size={30} />
-                  </div>
+          <Link href="/eventos" className="group">
+            <div className="bg-accent-50 rounded-2xl p-4 border border-accent-200 group-hover:shadow-lg group-hover:border-accent-300 transition-all duration-200 text-center">
+              <div className="flex items-center justify-center mb-3">
+                <div className="w-12 h-12 bg-accent rounded-2xl flex items-center justify-center">
+                  <Calendar className="text-white" size={20} />
                 </div>
-                <h3 className="font-bold text-dark text-xl">Eventos</h3>
               </div>
-            </Link>
+              <h3 className="font-medium text-gray-700 text-sm">Eventos</h3>
+            </div>
+          </Link>
 
-            <Link href="/informacoes" className="group">
-              <div className="bg-dark-50 rounded-3xl p-6 border border-dark-200 group-hover:shadow-2xl group-hover:scale-105 transition-all duration-300">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="w-16 h-16 bg-dark rounded-3xl flex items-center justify-center shadow-xl">
-                    <Star className="text-white" size={30} />
-                  </div>
+          <Link href="/informacoes" className="group">
+            <div className="bg-dark-50 rounded-2xl p-4 border border-dark-200 group-hover:shadow-lg group-hover:border-dark-300 transition-all duration-200 text-center">
+              <div className="flex items-center justify-center mb-3">
+                <div className="w-12 h-12 bg-dark rounded-2xl flex items-center justify-center">
+                  <Star className="text-white" size={20} />
                 </div>
-                <h3 className="font-bold text-dark text-xl">Informações</h3>
               </div>
-            </Link>
-          </div>
+              <h3 className="font-medium text-gray-700 text-sm">Informações</h3>
+            </div>
+          </Link>
         </div>
 
         {/* Destaques Premium */}
@@ -172,18 +168,29 @@ export default function HomePage() {
         </div>
 
         {/* Imóveis Premium */}
-        {properties.length > 0 && (
+        {properties.filter(item => item.type === 'RENT' && item.property_subtype === 'HOUSE').length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-dark">Locações</h2>
-              <Link href="/imoveis" className="bg-primary text-white px-3 py-1.5 rounded-full text-sm font-medium hover:shadow-md transition-all">
+              <Link href="/imoveis/aluguel" className="bg-primary text-white px-3 py-1.5 rounded-full text-sm font-medium hover:shadow-md transition-all">
                 Ver todos →
               </Link>
             </div>
             
             <div className="space-y-5">
-              {properties.slice(0, 3).map(item => (
+              {properties.filter(item => item.type === 'RENT' && item.property_subtype === 'HOUSE').slice(0, 3).map(item => (
                 <Link key={item.id} href={`/imoveis/${item.id}`} className="block bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-300">
+                  {/* Título no topo */}
+                  <div className="p-6 pb-4">
+                    <h3 className="font-bold text-dark text-xl mb-1 line-clamp-1">
+                      {item.title}
+                    </h3>
+                    <span className="text-primary font-bold text-lg">
+                      R$ {item.price.toLocaleString()}
+                    </span>
+                  </div>
+                  
+                  {/* Conteúdo */}
                   <div className="flex">
                     {item.images?.[0] && (
                       <div className="w-44 h-40 bg-gray-100 flex-shrink-0 relative overflow-hidden">
@@ -201,29 +208,17 @@ export default function HomePage() {
                         />
                       </div>
                     )}
-                    <div className="flex-1 p-6">
-                      <h3 className="font-bold text-dark text-xl mb-2 line-clamp-1">
-                        {item.title}
-                      </h3>
-                      <div className="flex items-start justify-start mb-3">
-                        <div className="text-left">
-                          <span className="text-primary font-bold text-lg">
-                            R$ {item.price.toLocaleString()}
-                          </span>
-                        </div>
-                      </div>
+                    <div className="flex-1 p-6 pt-4">
                       <p className="text-gray-600 text-sm line-clamp-2 mb-4">
                         {item.description}
                       </p>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full text-xs">
-                            🛏️ {item.bedrooms}
-                          </span>
-                          <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full text-xs">
-                            🚿 {item.bathrooms}
-                          </span>
-                        </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full text-xs">
+                          🛏️ {item.bedrooms}
+                        </span>
+                        <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full text-xs">
+                          🚿 {item.bathrooms}
+                        </span>
                       </div>
                     </div>
                   </div>

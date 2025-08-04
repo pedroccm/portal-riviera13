@@ -7,7 +7,9 @@
       "Bash(npx tailwindcss init:*)",
       "Bash(npm install:*)",
       "Bash(taskkill:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(del database_fake_data.sql policies.sql fix_images.sql fix_storage.sql migration_property_subtype.sql test_data_property_subtype.sql test_data_only.sql migration_infos_table.sql test_data_infos.sql migration_add_detailed_description.sql migration_neutral_colors.sql fix_all_colors.sql migration_add_instagram.sql)",
+      "Bash(rm:*)"
     ],
     "deny": []
   }

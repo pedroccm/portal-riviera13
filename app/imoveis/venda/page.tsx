@@ -1,18 +1,45 @@
 'use client'
 
-import { useProperties } from '@/hooks/useSupabase'
+import { useState } from 'react'
+import { usePropertiesByType } from '@/hooks/useSupabase'
 import MobileHeader from '@/components/layout/MobileHeader'
-import { PROPERTY_TYPES } from '@/types/database'
+import { PROPERTY_TYPES, PROPERTY_SUBTYPES } from '@/types/database'
 import Link from 'next/link'
 
 export default function VendaPage() {
-  const { properties, loading, error } = useProperties()
-  const vendaProperties = properties.filter(item => item.type === 'SALE')
+  const [activeTab, setActiveTab] = useState<'HOUSE' | 'LAND'>('HOUSE')
+  const { properties, loading, error } = usePropertiesByType('SALE', activeTab)
 
   return (
     <main className="min-h-screen bg-surface">
       <MobileHeader title="Venda" showBack />
       
+      {/* Tabs */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="flex">
+          <button
+            onClick={() => setActiveTab('HOUSE')}
+            className={`flex-1 py-4 text-center font-medium transition-colors ${
+              activeTab === 'HOUSE'
+                ? 'text-primary border-b-2 border-primary'
+                : 'text-gray-500'
+            }`}
+          >
+            🏠 {PROPERTY_SUBTYPES.HOUSE}
+          </button>
+          <button
+            onClick={() => setActiveTab('LAND')}
+            className={`flex-1 py-4 text-center font-medium transition-colors ${
+              activeTab === 'LAND'
+                ? 'text-primary border-b-2 border-primary'
+                : 'text-gray-500'
+            }`}
+          >
+            🏞️ {PROPERTY_SUBTYPES.LAND}
+          </button>
+        </div>
+      </div>
+
       <div className="px-4 py-6">
         {loading && (
           <div className="text-center py-8">
@@ -28,8 +55,7 @@ export default function VendaPage() {
 
         {!loading && !error && (
           <div className="space-y-4">
-
-            {vendaProperties.map(item => (
+            {properties.map(item => (
               <Link key={item.id} href={`/imoveis/${item.id}`} className="block bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
@@ -40,12 +66,21 @@ export default function VendaPage() {
                       {item.description}
                     </p>
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="bg-gray-100 px-2 py-1 rounded-full text-xs text-gray-600">
-                        🛏️ {item.bedrooms}q
-                      </span>
-                      <span className="bg-gray-100 px-2 py-1 rounded-full text-xs text-gray-600">
-                        🚿 {item.bathrooms}b
-                      </span>
+                      {activeTab === 'HOUSE' && (
+                        <>
+                          <span className="bg-gray-100 px-2 py-1 rounded-full text-xs text-gray-600">
+                            🛏️ {item.bedrooms}q
+                          </span>
+                          <span className="bg-gray-100 px-2 py-1 rounded-full text-xs text-gray-600">
+                            🚿 {item.bathrooms}b
+                          </span>
+                        </>
+                      )}
+                      {item.area && (
+                        <span className="bg-gray-100 px-2 py-1 rounded-full text-xs text-gray-600">
+                          📐 {item.area}m²
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-primary font-bold text-lg">
@@ -66,9 +101,11 @@ export default function VendaPage() {
               </Link>
             ))}
 
-            {vendaProperties.length === 0 && (
+            {properties.length === 0 && (
               <div className="text-center py-8">
-                <p className="text-gray-500">Nenhum imóvel à venda encontrado</p>
+                <p className="text-gray-500">
+                  Nenhum{activeTab === 'HOUSE' ? 'a casa' : ' terreno'} à venda encontrado
+                </p>
               </div>
             )}
           </div>

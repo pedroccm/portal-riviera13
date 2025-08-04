@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Building, TrendingUp, Calendar, Lock, Eye, EyeOff, Upload, X, Image, Edit, Trash2, Plus, List } from 'lucide-react'
-import { Classified, Property, Event, CLASSIFIED_CATEGORIES, PROPERTY_TYPES } from '@/types/database'
+import { Building, TrendingUp, Calendar, Lock, Eye, EyeOff, Upload, X, Image, Edit, Trash2, Plus, List, Info } from 'lucide-react'
+import { Classified, Property, Event, Info as InfoType, CLASSIFIED_CATEGORIES, PROPERTY_TYPES, PROPERTY_SUBTYPES, INFO_CATEGORIES } from '@/types/database'
 
 const ADMIN_PASSWORD = 'q1w2e3r4t5'
 
@@ -19,6 +19,7 @@ export default function AdminPage() {
   const [properties, setProperties] = useState<Property[]>([])
   const [classifieds, setClassifieds] = useState<Classified[]>([])
   const [events, setEvents] = useState<Event[]>([])
+  const [infos, setInfos] = useState<InfoType[]>([])
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
 
@@ -27,12 +28,14 @@ export default function AdminPage() {
     title: '',
     description: '',
     type: 'RENT',
+    property_subtype: 'APARTMENT',
     price: '',
     bedrooms: '',
     bathrooms: '',
     area: '',
     contact_name: '',
     contact_phone: '',
+    instagram: '',
     apartment: '',
     block: ''
   })
@@ -47,6 +50,7 @@ export default function AdminPage() {
     price: '',
     contact_name: '',
     contact_phone: '',
+    instagram: '',
     apartment: '',
     block: ''
   })
@@ -66,6 +70,28 @@ export default function AdminPage() {
   const [eventImages, setEventImages] = useState<File[]>([])
   const [eventImagePreviews, setEventImagePreviews] = useState<string[]>([])
 
+  // Info form state
+  const [infoForm, setInfoForm] = useState({
+    title: '',
+    description: '',
+    detailed_description: '',
+    category: 'RIVIERA',
+    phone: '',
+    address: '',
+    location: '',
+    observations: '',
+    website: '',
+    email: '',
+    color: '#0066cc',
+    icon: ''
+  })
+  const [infoImages, setInfoImages] = useState<File[]>([])
+  const [infoImagePreviews, setInfoImagePreviews] = useState<string[]>([])
+  const [infoHours, setInfoHours] = useState<Record<string, string>>({
+    monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: ''
+  })
+  const [infoServices, setInfoServices] = useState<string[]>([''])
+
   useEffect(() => {
     if (isAuthenticated) {
       fetchData()
@@ -74,15 +100,17 @@ export default function AdminPage() {
 
   const fetchData = async () => {
     try {
-      const [propertiesRes, classifiedsRes, eventsRes] = await Promise.all([
+      const [propertiesRes, classifiedsRes, eventsRes, infosRes] = await Promise.all([
         supabase.from('properties').select('*').order('created_at', { ascending: false }),
         supabase.from('classifieds').select('*').order('created_at', { ascending: false }),
-        supabase.from('events').select('*').order('created_at', { ascending: false })
+        supabase.from('events').select('*').order('created_at', { ascending: false }),
+        supabase.from('infos').select('*').order('created_at', { ascending: false })
       ])
       
       if (propertiesRes.data) setProperties(propertiesRes.data)
       if (classifiedsRes.data) setClassifieds(classifiedsRes.data)
       if (eventsRes.data) setEvents(eventsRes.data)
+      if (infosRes.data) setInfos(infosRes.data)
     } catch (err) {
       showMessage('Erro ao carregar dados: ' + (err as Error).message, true)
     }
@@ -129,7 +157,7 @@ export default function AdminPage() {
     return urls
   }
 
-  const handleImageSelect = (files: FileList | null, type: 'property' | 'classified' | 'event') => {
+  const handleImageSelect = (files: FileList | null, type: 'property' | 'classified' | 'event' | 'info') => {
     if (!files) return
     
     const fileArray = Array.from(files)
@@ -149,6 +177,9 @@ export default function AdminPage() {
           } else if (type === 'event') {
             setEventImages(prev => [...prev, ...fileArray])
             setEventImagePreviews(prev => [...prev, ...previews])
+          } else if (type === 'info') {
+            setInfoImages(prev => [...prev, ...fileArray])
+            setInfoImagePreviews(prev => [...prev, ...previews])
           }
         }
       }
@@ -156,7 +187,7 @@ export default function AdminPage() {
     })
   }
 
-  const removeImage = (index: number, type: 'property' | 'classified' | 'event') => {
+  const removeImage = (index: number, type: 'property' | 'classified' | 'event' | 'info') => {
     if (type === 'property') {
       setPropertyImages(prev => prev.filter((_, i) => i !== index))
       setPropertyImagePreviews(prev => prev.filter((_, i) => i !== index))
@@ -166,6 +197,9 @@ export default function AdminPage() {
     } else if (type === 'event') {
       setEventImages(prev => prev.filter((_, i) => i !== index))
       setEventImagePreviews(prev => prev.filter((_, i) => i !== index))
+    } else if (type === 'info') {
+      setInfoImages(prev => prev.filter((_, i) => i !== index))
+      setInfoImagePreviews(prev => prev.filter((_, i) => i !== index))
     }
   }
 
@@ -184,7 +218,7 @@ export default function AdminPage() {
     e.stopPropagation()
   }
 
-  const handleDrop = (e: React.DragEvent, type: 'property' | 'classified' | 'event') => {
+  const handleDrop = (e: React.DragEvent, type: 'property' | 'classified' | 'event' | 'info') => {
     e.preventDefault()
     e.stopPropagation()
     
@@ -194,7 +228,7 @@ export default function AdminPage() {
     }
   }
 
-  const handleDelete = async (id: string, type: 'property' | 'classified' | 'event') => {
+  const handleDelete = async (id: string, type: 'property' | 'classified' | 'event' | 'info') => {
     if (!confirm('Tem certeza que deseja excluir este item?')) return
     
     setLoading(true)
@@ -202,7 +236,8 @@ export default function AdminPage() {
       let table = ''
       if (type === 'property') table = 'properties'
       else if (type === 'classified') table = 'classifieds'  
-      else table = 'events'
+      else if (type === 'event') table = 'events'
+      else table = 'infos'
       
       const { error } = await supabase.from(table).delete().eq('id', id)
       if (error) throw error
@@ -228,12 +263,14 @@ export default function AdminPage() {
           title: editingItem.title || '',
           description: editingItem.description || '',
           type: editingItem.type || 'RENT',
+          property_subtype: editingItem.property_subtype || 'APARTMENT',
           price: editingItem.price?.toString() || '',
           bedrooms: editingItem.bedrooms?.toString() || '',
           bathrooms: editingItem.bathrooms?.toString() || '',
           area: editingItem.area?.toString() || '',
           contact_name: editingItem.contact_name || '',
           contact_phone: editingItem.contact_phone || '',
+          instagram: editingItem.instagram || '',
           apartment: editingItem.apartment || '',
           block: editingItem.block || ''
         })
@@ -245,6 +282,7 @@ export default function AdminPage() {
           price: editingItem.price?.toString() || '',
           contact_name: editingItem.contact_name || '',
           contact_phone: editingItem.contact_phone || '',
+          instagram: editingItem.instagram || '',
           apartment: editingItem.apartment || '',
           block: editingItem.block || ''
         })
@@ -259,6 +297,25 @@ export default function AdminPage() {
           contact_name: editingItem.contact_name || '',
           contact_phone: editingItem.contact_phone || ''
         })
+      } else if (activeTab === 'informacoes') {
+        setInfoForm({
+          title: editingItem.title || '',
+          description: editingItem.description || '',
+          detailed_description: editingItem.detailed_description || '',
+          category: editingItem.category || 'RIVIERA',
+          phone: editingItem.phone || '',
+          address: editingItem.address || '',
+          location: editingItem.location || '',
+          observations: editingItem.observations || '',
+          website: editingItem.website || '',
+          email: editingItem.email || '',
+          color: editingItem.color || '#0066cc',
+          icon: editingItem.icon || ''
+        })
+        setInfoHours(editingItem.hours || {
+          monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: ''
+        })
+        setInfoServices(editingItem.services || [''])
       }
     }
   }, [editingItem, activeTab])
@@ -279,6 +336,7 @@ export default function AdminPage() {
         title: propertyForm.title,
         description: propertyForm.description,
         type: propertyForm.type,
+        property_subtype: propertyForm.property_subtype,
         price: parseFloat(propertyForm.price),
         bedrooms: parseInt(propertyForm.bedrooms),
         bathrooms: parseInt(propertyForm.bathrooms),
@@ -286,6 +344,7 @@ export default function AdminPage() {
         images: imageUrls,
         contact_name: propertyForm.contact_name,
         contact_phone: propertyForm.contact_phone || null,
+        instagram: propertyForm.instagram || null,
         apartment: propertyForm.apartment || null,
         block: propertyForm.block || null
       }
@@ -303,8 +362,8 @@ export default function AdminPage() {
       
       showMessage(editingItem ? 'Imóvel atualizado com sucesso!' : 'Imóvel cadastrado com sucesso!')
       setPropertyForm({
-        title: '', description: '', type: 'RENT', price: '', bedrooms: '', bathrooms: '',
-        area: '', contact_name: '', contact_phone: '', apartment: '', block: ''
+        title: '', description: '', type: 'RENT', property_subtype: 'APARTMENT', price: '', bedrooms: '', bathrooms: '',
+        area: '', contact_name: '', contact_phone: '', instagram: '', apartment: '', block: ''
       })
       setPropertyImages([])
       setPropertyImagePreviews([])
@@ -337,6 +396,7 @@ export default function AdminPage() {
         images: imageUrls,
         contact_name: classifiedForm.contact_name,
         contact_phone: classifiedForm.contact_phone || null,
+        instagram: classifiedForm.instagram || null,
         apartment: classifiedForm.apartment || null,
         block: classifiedForm.block || null
       }
@@ -355,7 +415,7 @@ export default function AdminPage() {
       showMessage(editingItem ? 'Classificado atualizado com sucesso!' : 'Classificado cadastrado com sucesso!')
       setClassifiedForm({
         title: '', description: '', category: 'GERAL', price: '',
-        contact_name: '', contact_phone: '', apartment: '', block: ''
+        contact_name: '', contact_phone: '', instagram: '', apartment: '', block: ''
       })
       setClassifiedImages([])
       setClassifiedImagePreviews([])
@@ -416,6 +476,79 @@ export default function AdminPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleInfoSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    
+    try {
+      let imageUrls: string[] = editingItem?.images || []
+      
+      if (infoImages.length > 0) {
+        const newImages = await uploadImages(infoImages, 'infos')
+        imageUrls = [...imageUrls, ...newImages]
+      }
+      
+      const data = {
+        title: infoForm.title,
+        description: infoForm.description,
+        detailed_description: infoForm.detailed_description || null,
+        category: infoForm.category,
+        phone: infoForm.phone || null,
+        address: infoForm.address || null,
+        location: infoForm.location || null,
+        hours: Object.keys(infoHours).some(key => infoHours[key]) ? infoHours : null,
+        services: infoServices.filter(s => s.trim()).length > 0 ? infoServices.filter(s => s.trim()) : null,
+        observations: infoForm.observations || null,
+        website: infoForm.website || null,
+        email: infoForm.email || null,
+        images: imageUrls,
+        color: infoForm.color || null,
+        icon: infoForm.icon || null
+      }
+
+      let error
+      if (editingItem) {
+        const result = await supabase.from('infos').update(data).eq('id', editingItem.id)
+        error = result.error
+      } else {
+        const result = await supabase.from('infos').insert(data)
+        error = result.error
+      }
+
+      if (error) throw error
+      
+      showMessage(editingItem ? 'Informação atualizada com sucesso!' : 'Informação cadastrada com sucesso!')
+      setInfoForm({
+        title: '', description: '', detailed_description: '', category: 'RIVIERA',
+        phone: '', address: '', location: '', observations: '', website: '', email: '', color: '#0066cc', icon: ''
+      })
+      setInfoHours({ monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' })
+      setInfoServices([''])
+      setInfoImages([])
+      setInfoImagePreviews([])
+      setEditingItem(null)
+      fetchData() // Refresh data
+    } catch (err) {
+      showMessage('Erro ao salvar informação: ' + (err as Error).message, true)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const addService = () => {
+    setInfoServices([...infoServices, ''])
+  }
+
+  const removeService = (index: number) => {
+    setInfoServices(infoServices.filter((_, i) => i !== index))
+  }
+
+  const updateService = (index: number, value: string) => {
+    const updated = [...infoServices]
+    updated[index] = value
+    setInfoServices(updated)
   }
 
   if (!isAuthenticated) {
@@ -514,6 +647,17 @@ export default function AdminPage() {
           >
             <Calendar className="mx-auto mb-1" size={20} />
             Eventos
+          </button>
+          <button
+            onClick={() => setActiveTab('informacoes')}
+            className={`flex-1 py-4 px-6 text-center font-medium ${
+              activeTab === 'informacoes'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Info className="mx-auto mb-1" size={20} />
+            Informações
           </button>
         </div>
       </div>
@@ -632,7 +776,7 @@ export default function AdminPage() {
               </div>
             )}
             <form onSubmit={handlePropertySubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <input
                   type="text"
                   placeholder="Título"
@@ -648,6 +792,15 @@ export default function AdminPage() {
                 >
                   <option value="RENT">Aluguel</option>
                   <option value="SALE">Venda</option>
+                </select>
+                <select
+                  value={propertyForm.property_subtype}
+                  onChange={(e) => setPropertyForm({...propertyForm, property_subtype: e.target.value as 'HOUSE' | 'LAND' | 'APARTMENT'})}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="APARTMENT">Apartamento</option>
+                  <option value="HOUSE">Casa</option>
+                  <option value="LAND">Terreno</option>
                 </select>
               </div>
 
@@ -694,7 +847,7 @@ export default function AdminPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <input
                   type="text"
                   placeholder="Nome do contato"
@@ -708,6 +861,13 @@ export default function AdminPage() {
                   placeholder="Telefone"
                   value={propertyForm.contact_phone}
                   onChange={(e) => setPropertyForm({...propertyForm, contact_phone: e.target.value})}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="text"
+                  placeholder="Instagram (@usuario)"
+                  value={propertyForm.instagram}
+                  onChange={(e) => setPropertyForm({...propertyForm, instagram: e.target.value})}
                   className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -798,8 +958,8 @@ export default function AdminPage() {
                     onClick={() => {
                       setEditingItem(null)
                       setPropertyForm({
-                        title: '', description: '', type: 'RENT', price: '', bedrooms: '', bathrooms: '',
-                        area: '', contact_name: '', contact_phone: '', apartment: '', block: ''
+                        title: '', description: '', type: 'RENT', property_subtype: 'APARTMENT', price: '', bedrooms: '', bathrooms: '',
+                        area: '', contact_name: '', contact_phone: '', instagram: '', apartment: '', block: ''
                       })
                       setPropertyImages([])
                       setPropertyImagePreviews([])
@@ -924,7 +1084,7 @@ export default function AdminPage() {
                 required
               />
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input
                   type="number"
                   placeholder="Preço (opcional)"
@@ -940,11 +1100,21 @@ export default function AdminPage() {
                   className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   required
                 />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input
                   type="tel"
                   placeholder="Telefone"
                   value={classifiedForm.contact_phone}
                   onChange={(e) => setClassifiedForm({...classifiedForm, contact_phone: e.target.value})}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="text"
+                  placeholder="Instagram (@usuario)"
+                  value={classifiedForm.instagram}
+                  onChange={(e) => setClassifiedForm({...classifiedForm, instagram: e.target.value})}
                   className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -1036,7 +1206,7 @@ export default function AdminPage() {
                       setEditingItem(null)
                       setClassifiedForm({
                         title: '', description: '', category: 'GERAL', price: '',
-                        contact_name: '', contact_phone: '', apartment: '', block: ''
+                        contact_name: '', contact_phone: '', instagram: '', apartment: '', block: ''
                       })
                       setClassifiedImages([])
                       setClassifiedImagePreviews([])
@@ -1265,6 +1435,335 @@ export default function AdminPage() {
                       })
                       setEventImages([])
                       setEventImagePreviews([])
+                    }}
+                    className="px-6 bg-gray-500 text-white py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Info Content */}
+        {activeTab === 'informacoes' && viewMode === 'list' && (
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            <h2 className="text-lg font-semibold mb-6">Informações Cadastradas ({infos.length})</h2>
+            <div className="space-y-4">
+              {infos.map(item => (
+                <div key={item.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-medium">
+                          {INFO_CATEGORIES[item.category]}
+                        </span>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          item.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                        }`}>
+                          {item.status === 'ACTIVE' ? 'Ativo' : 'Inativo'}
+                        </span>
+                        {item.color && (
+                          <div 
+                            className="w-4 h-4 rounded-full border border-gray-300" 
+                            style={{ backgroundColor: item.color }}
+                          ></div>
+                        )}
+                      </div>
+                      <h3 className="font-semibold text-gray-800 mb-1">{item.title}</h3>
+                      <p className="text-sm text-gray-600 mb-2 line-clamp-2">{item.description}</p>
+                      <div className="flex items-center gap-4 text-sm text-gray-500">
+                        {item.phone && <span>📞 {item.phone}</span>}
+                        {item.address && <span>📍 {item.address}</span>}
+                        {item.website && <span>🌐 {item.website}</span>}
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        Criado em: {formatDate(item.created_at)}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 ml-4">
+                      <button
+                        onClick={() => { setEditingItem(item); setViewMode('create'); }}
+                        className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                        title="Editar"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(item.id, 'info')}
+                        className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                        title="Excluir"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {infos.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  Nenhuma informação cadastrada ainda
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Info Form */}
+        {activeTab === 'informacoes' && viewMode === 'create' && (
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            <h2 className="text-lg font-semibold mb-6">
+              {editingItem ? 'Editar Informação' : 'Cadastrar Informação'}
+            </h2>
+            {editingItem && (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-700">
+                  📝 Editando: <strong>{editingItem.title}</strong>
+                </p>
+              </div>
+            )}
+            <form onSubmit={handleInfoSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input
+                  type="text"
+                  placeholder="Título"
+                  value={infoForm.title}
+                  onChange={(e) => setInfoForm({...infoForm, title: e.target.value})}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+                <select
+                  value={infoForm.category}
+                  onChange={(e) => setInfoForm({...infoForm, category: e.target.value})}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="RIVIERA">Riviera</option>
+                  <option value="HOSPITAIS">Hospitais</option>
+                  <option value="SUPERMERCADOS">Supermercados</option>
+                  <option value="RESTAURANTES">Restaurantes</option>
+                  <option value="HOTEIS">Hotéis</option>
+                </select>
+              </div>
+
+              <textarea
+                placeholder="Descrição"
+                value={infoForm.description}
+                onChange={(e) => setInfoForm({...infoForm, description: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                rows={3}
+                required
+              />
+
+              <textarea
+                placeholder="Descrição detalhada (opcional)"
+                value={infoForm.detailed_description}
+                onChange={(e) => setInfoForm({...infoForm, detailed_description: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                rows={4}
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input
+                  type="tel"
+                  placeholder="Telefone"
+                  value={infoForm.phone}
+                  onChange={(e) => setInfoForm({...infoForm, phone: e.target.value})}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={infoForm.email}
+                  onChange={(e) => setInfoForm({...infoForm, email: e.target.value})}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input
+                  type="url"
+                  placeholder="Website"
+                  value={infoForm.website}
+                  onChange={(e) => setInfoForm({...infoForm, website: e.target.value})}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="text"
+                  placeholder="Localização"
+                  value={infoForm.location}
+                  onChange={(e) => setInfoForm({...infoForm, location: e.target.value})}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <input
+                type="text"
+                placeholder="Endereço"
+                value={infoForm.address}
+                onChange={(e) => setInfoForm({...infoForm, address: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Cor do tema</label>
+                  <input
+                    type="color"
+                    value={infoForm.color}
+                    onChange={(e) => setInfoForm({...infoForm, color: e.target.value})}
+                    className="w-full p-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Ícone (opcional)"
+                  value={infoForm.icon}
+                  onChange={(e) => setInfoForm({...infoForm, icon: e.target.value})}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Horários */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Horários de funcionamento</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {Object.entries({
+                    monday: 'Segunda', tuesday: 'Terça', wednesday: 'Quarta',
+                    thursday: 'Quinta', friday: 'Sexta', saturday: 'Sábado', sunday: 'Domingo'
+                  }).map(([key, label]) => (
+                    <div key={key} className="flex items-center gap-2">
+                      <label className="text-sm text-gray-600 w-16">{label}:</label>
+                      <input
+                        type="text"
+                        placeholder="08:00-18:00"
+                        value={infoHours[key]}
+                        onChange={(e) => setInfoHours({...infoHours, [key]: e.target.value})}
+                        className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Serviços */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-sm font-medium text-gray-700">Serviços oferecidos</label>
+                  <button
+                    type="button"
+                    onClick={addService}
+                    className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1"
+                  >
+                    <Plus size={16} /> Adicionar
+                  </button>
+                </div>
+                {infoServices.map((service, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="Nome do serviço"
+                      value={service}
+                      onChange={(e) => updateService(index, e.target.value)}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                    {infoServices.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeService(index)}
+                        className="p-2 text-red-600 hover:bg-red-100 rounded-lg"
+                      >
+                        <X size={16} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <textarea
+                placeholder="Observações adicionais"
+                value={infoForm.observations}
+                onChange={(e) => setInfoForm({...infoForm, observations: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                rows={3}
+              />
+
+              {/* Image Upload */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="block text-sm font-medium text-gray-700">Imagens</label>
+                  <label className="cursor-pointer bg-blue-100 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-200 transition-colors flex items-center gap-2">
+                    <Upload size={16} />
+                    Adicionar Imagens
+                    <input
+                      id="info-file-input"
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={(e) => handleImageSelect(e.target.files, 'info')}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+                
+                {infoImagePreviews.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {infoImagePreviews.map((preview, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={preview}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index, 'info')}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {infoImagePreviews.length === 0 && (
+                  <div 
+                    className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 hover:bg-blue-50 transition-colors cursor-pointer"
+                    onDragOver={handleDragOver}
+                    onDragEnter={handleDragEnter}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, 'info')}
+                    onClick={() => document.getElementById('info-file-input')?.click()}
+                  >
+                    <Image className="mx-auto mb-2 text-gray-400" size={48} />
+                    <p className="text-gray-500 mb-2">Arraste imagens aqui ou clique para selecionar</p>
+                    <p className="text-gray-400 text-sm">Suporte para múltiplas imagens</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                >
+                  {loading ? 'Salvando...' : (editingItem ? 'Atualizar Informação' : 'Cadastrar Informação')}
+                </button>
+                {editingItem && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingItem(null)
+                      setInfoForm({
+                        title: '', description: '', detailed_description: '', category: 'RIVIERA',
+                        phone: '', address: '', location: '', observations: '', website: '', email: '', color: '#0066cc', icon: ''
+                      })
+                      setInfoHours({ monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' })
+                      setInfoServices([''])
+                      setInfoImages([])
+                      setInfoImagePreviews([])
                     }}
                     className="px-6 bg-gray-500 text-white py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors"
                   >
