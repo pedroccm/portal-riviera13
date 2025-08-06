@@ -32,6 +32,7 @@ export interface Property {
   instagram?: string
   apartment?: string
   block?: string
+  link?: string
   created_at: string
   updated_at: string
 }
@@ -101,3 +102,18 @@ export const INFO_CATEGORIES = {
   RESTAURANTES: 'Restaurantes',
   HOTEIS: 'Hotéis'
 } as const
+
+export interface CrmContact {
+  id: string
+  name: string
+  email?: string
+  phone?: string
+  link?: string
+  description?: string
+  status: 'ACTIVE' | 'INACTIVE'
+  tags?: string[]
+  notes?: string
+  last_contact?: string
+  created_at: string
+  updated_at: string
+}

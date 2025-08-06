@@ -1,0 +1,33 @@
+[
+    {
+      "title": "Hospital São Luiz",
+      "description": "Hospital de referência na região",
+      "detailed_description": "Hospital com atendimento 24h, pronto-socorro e diversas especialidades médicas",
+      "category": "HOSPITAIS",
+      "phone": "(11) 3333-3333",
+      "address": "Rua das Flores, 123 - Riviera",
+      "location": "Centro da Riviera",
+      "website": "https://www.hospitalsaoluiz.com.br",
+      "email": "contato@hospitalsaoluiz.com.br",
+      "color": "#FF0000",
+      "icon": "hospital",
+      "hours": {
+        "monday": "00:00-23:59",
+        "tuesday": "00:00-23:59",
+        "wednesday": "00:00-23:59",
+        "thursday": "00:00-23:59",
+        "friday": "00:00-23:59",
+        "saturday": "00:00-23:59",
+        "sunday": "00:00-23:59"
+      },
+      "services": [
+        "Pronto-Socorro",
+        "Cardiologia",
+        "Ortopedia"
+      ],
+      "observations": "Atendimento de emergência 24 horas",
+      "images": [
+        "https://exemplo.com/hospital1.jpg"
+      ]
+    }
+  ]

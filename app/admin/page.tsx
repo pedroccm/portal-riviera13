@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Building, TrendingUp, Calendar, Lock, Eye, EyeOff, Upload, X, Image, Edit, Trash2, Plus, List, Info } from 'lucide-react'
-import { Classified, Property, Event, Info as InfoType, CLASSIFIED_CATEGORIES, PROPERTY_TYPES, PROPERTY_SUBTYPES, INFO_CATEGORIES } from '@/types/database'
+import { Building, TrendingUp, Calendar, Lock, Eye, EyeOff, Upload, X, Image, Edit, Trash2, Plus, List, Info, FileText, Download, Users } from 'lucide-react'
+import { Classified, Property, Event, Info as InfoType, CrmContact, CLASSIFIED_CATEGORIES, PROPERTY_TYPES, PROPERTY_SUBTYPES, INFO_CATEGORIES } from '@/types/database'
 
 const ADMIN_PASSWORD = 'q1w2e3r4t5'
 
@@ -12,7 +12,7 @@ export default function AdminPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [activeTab, setActiveTab] = useState('imoveis')
-  const [viewMode, setViewMode] = useState<'create' | 'list'>('create')
+  const [viewMode, setViewMode] = useState<'create' | 'list' | 'upload'>('create')
   const [editingItem, setEditingItem] = useState<any>(null)
   
   // Data lists
@@ -20,6 +20,7 @@ export default function AdminPage() {
   const [classifieds, setClassifieds] = useState<Classified[]>([])
   const [events, setEvents] = useState<Event[]>([])
   const [infos, setInfos] = useState<InfoType[]>([])
+  const [crmContacts, setCrmContacts] = useState<CrmContact[]>([])
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
 
@@ -37,7 +38,8 @@ export default function AdminPage() {
     contact_phone: '',
     instagram: '',
     apartment: '',
-    block: ''
+    block: '',
+    link: ''
   })
   const [propertyImages, setPropertyImages] = useState<File[]>([])
   const [propertyImagePreviews, setPropertyImagePreviews] = useState<string[]>([])
@@ -92,25 +94,52 @@ export default function AdminPage() {
   })
   const [infoServices, setInfoServices] = useState<string[]>([''])
 
+  // CRM form state
+  const [crmForm, setCrmForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    link: '',
+    description: '',
+    notes: '',
+    last_contact: ''
+  })
+  const [crmTags, setCrmTags] = useState<string[]>([''])
+
+  // JSON Input state
+  const [jsonInput, setJsonInput] = useState('')
+  const [jsonData, setJsonData] = useState<any[]>([])
+  const [jsonValid, setJsonValid] = useState<boolean | null>(null)
+  const [jsonError, setJsonError] = useState('')
+
   useEffect(() => {
     if (isAuthenticated) {
       fetchData()
     }
   }, [isAuthenticated])
 
+  // Revalidate JSON when tab changes
+  useEffect(() => {
+    if (jsonInput.trim()) {
+      handleJsonInput(jsonInput)
+    }
+  }, [activeTab])
+
   const fetchData = async () => {
     try {
-      const [propertiesRes, classifiedsRes, eventsRes, infosRes] = await Promise.all([
+      const [propertiesRes, classifiedsRes, eventsRes, infosRes, crmRes] = await Promise.all([
         supabase.from('properties').select('*').order('created_at', { ascending: false }),
         supabase.from('classifieds').select('*').order('created_at', { ascending: false }),
         supabase.from('events').select('*').order('created_at', { ascending: false }),
-        supabase.from('infos').select('*').order('created_at', { ascending: false })
+        supabase.from('infos').select('*').order('created_at', { ascending: false }),
+        supabase.from('crm_contacts').select('*').order('created_at', { ascending: false })
       ])
       
       if (propertiesRes.data) setProperties(propertiesRes.data)
       if (classifiedsRes.data) setClassifieds(classifiedsRes.data)
       if (eventsRes.data) setEvents(eventsRes.data)
       if (infosRes.data) setInfos(infosRes.data)
+      if (crmRes.data) setCrmContacts(crmRes.data)
     } catch (err) {
       showMessage('Erro ao carregar dados: ' + (err as Error).message, true)
     }
@@ -237,7 +266,8 @@ export default function AdminPage() {
       if (type === 'property') table = 'properties'
       else if (type === 'classified') table = 'classifieds'  
       else if (type === 'event') table = 'events'
-      else table = 'infos'
+      else if (type === 'info') table = 'infos'
+      else table = 'crm_contacts'
       
       const { error } = await supabase.from(table).delete().eq('id', id)
       if (error) throw error
@@ -272,7 +302,8 @@ export default function AdminPage() {
           contact_phone: editingItem.contact_phone || '',
           instagram: editingItem.instagram || '',
           apartment: editingItem.apartment || '',
-          block: editingItem.block || ''
+          block: editingItem.block || '',
+          link: editingItem.link || ''
         })
       } else if (activeTab === 'classificados') {
         setClassifiedForm({
@@ -316,6 +347,17 @@ export default function AdminPage() {
           monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: ''
         })
         setInfoServices(editingItem.services || [''])
+      } else if (activeTab === 'crm') {
+        setCrmForm({
+          name: editingItem.name || '',
+          email: editingItem.email || '',
+          phone: editingItem.phone || '',
+          link: editingItem.link || '',
+          description: editingItem.description || '',
+          notes: editingItem.notes || '',
+          last_contact: editingItem.last_contact ? new Date(editingItem.last_contact).toISOString().slice(0, 10) : ''
+        })
+        setCrmTags(editingItem.tags || [''])
       }
     }
   }, [editingItem, activeTab])
@@ -346,7 +388,8 @@ export default function AdminPage() {
         contact_phone: propertyForm.contact_phone || null,
         instagram: propertyForm.instagram || null,
         apartment: propertyForm.apartment || null,
-        block: propertyForm.block || null
+        block: propertyForm.block || null,
+        link: propertyForm.link || null
       }
 
       let error
@@ -363,7 +406,7 @@ export default function AdminPage() {
       showMessage(editingItem ? 'Imóvel atualizado com sucesso!' : 'Imóvel cadastrado com sucesso!')
       setPropertyForm({
         title: '', description: '', type: 'RENT', property_subtype: 'APARTMENT', price: '', bedrooms: '', bathrooms: '',
-        area: '', contact_name: '', contact_phone: '', instagram: '', apartment: '', block: ''
+        area: '', contact_name: '', contact_phone: '', instagram: '', apartment: '', block: '', link: ''
       })
       setPropertyImages([])
       setPropertyImagePreviews([])
@@ -551,6 +594,324 @@ export default function AdminPage() {
     setInfoServices(updated)
   }
 
+  // CRM functions
+  const addCrmTag = () => {
+    setCrmTags([...crmTags, ''])
+  }
+
+  const removeCrmTag = (index: number) => {
+    setCrmTags(crmTags.filter((_, i) => i !== index))
+  }
+
+  const updateCrmTag = (index: number, value: string) => {
+    const updated = [...crmTags]
+    updated[index] = value
+    setCrmTags(updated)
+  }
+
+  const handleCrmSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    
+    try {
+      const data = {
+        name: crmForm.name,
+        email: crmForm.email || null,
+        phone: crmForm.phone || null,
+        link: crmForm.link || null,
+        description: crmForm.description || null,
+        notes: crmForm.notes || null,
+        last_contact: crmForm.last_contact || null,
+        tags: crmTags.filter(tag => tag.trim()).length > 0 ? crmTags.filter(tag => tag.trim()) : null
+      }
+
+      let error
+      if (editingItem) {
+        const result = await supabase.from('crm_contacts').update(data).eq('id', editingItem.id)
+        error = result.error
+      } else {
+        const result = await supabase.from('crm_contacts').insert(data)
+        error = result.error
+      }
+
+      if (error) throw error
+      
+      showMessage(editingItem ? 'Contato atualizado com sucesso!' : 'Contato cadastrado com sucesso!')
+      setCrmForm({
+        name: '', email: '', phone: '', link: '', description: '', notes: '', last_contact: ''
+      })
+      setCrmTags([''])
+      setEditingItem(null)
+      fetchData()
+    } catch (err) {
+      showMessage('Erro ao salvar contato: ' + (err as Error).message, true)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // JSON Input functions
+  const handleJsonInput = (value: string) => {
+    setJsonInput(value)
+    
+    if (!value.trim()) {
+      setJsonData([])
+      setJsonValid(null)
+      setJsonError('')
+      return
+    }
+
+    try {
+      const parsed = JSON.parse(value)
+      const dataArray = Array.isArray(parsed) ? parsed : [parsed]
+      setJsonData(dataArray)
+      
+      // Validate structure
+      const errors = validateJsonData(dataArray, activeTab)
+      if (errors.length > 0) {
+        setJsonValid(false)
+        setJsonError(errors.slice(0, 3).join('; '))
+      } else {
+        setJsonValid(true)
+        setJsonError('')
+      }
+    } catch (error) {
+      setJsonData([])
+      setJsonValid(false)
+      setJsonError('JSON inválido: ' + (error as Error).message)
+    }
+  }
+
+  const validateJsonData = (data: any[], type: string) => {
+    const requiredFields: Record<string, string[]> = {
+      crm: ['name'],
+      imoveis: ['title', 'description', 'type', 'price', 'contact_name'],
+      classificados: ['title', 'description', 'category', 'contact_name'],
+      eventos: ['title', 'description', 'event_date', 'contact_name'],
+      informacoes: ['title', 'description', 'category']
+    }
+
+    const required = requiredFields[type] || []
+    const errors: string[] = []
+
+    data.forEach((item, index) => {
+      required.forEach(field => {
+        if (!item[field]) {
+          errors.push(`Item ${index + 1}: Campo '${field}' é obrigatório`)
+        }
+      })
+    })
+
+    return errors
+  }
+
+  const processJsonUpload = async () => {
+    if (!jsonData.length) {
+      showMessage('Nenhum dado JSON para processar', true)
+      return
+    }
+
+    const errors = validateJsonData(jsonData, activeTab)
+    if (errors.length > 0) {
+      showMessage('Erros na validação: ' + errors.slice(0, 3).join(', '), true)
+      return
+    }
+
+    setLoading(true)
+    try {
+      let table = ''
+      let processedData = []
+
+      if (activeTab === 'imoveis') {
+        table = 'properties'
+        processedData = jsonData.map(item => ({
+          title: item.title,
+          description: item.description,
+          type: item.type,
+          property_subtype: item.property_subtype || 'APARTMENT',
+          price: parseFloat(item.price),
+          bedrooms: item.bedrooms ? parseInt(item.bedrooms) : 0,
+          bathrooms: item.bathrooms ? parseInt(item.bathrooms) : 0,
+          area: item.area ? parseFloat(item.area) : null,
+          images: item.images || [],
+          contact_name: item.contact_name,
+          contact_phone: item.contact_phone || null,
+          instagram: item.instagram || null,
+          apartment: item.apartment || null,
+          block: item.block || null,
+          link: item.link || null
+        }))
+      } else if (activeTab === 'classificados') {
+        table = 'classifieds'
+        processedData = jsonData.map(item => ({
+          title: item.title,
+          description: item.description,
+          category: item.category,
+          price: item.price ? parseFloat(item.price) : null,
+          images: item.images || [],
+          contact_name: item.contact_name,
+          contact_phone: item.contact_phone || null,
+          instagram: item.instagram || null,
+          apartment: item.apartment || null,
+          block: item.block || null
+        }))
+      } else if (activeTab === 'eventos') {
+        table = 'events'
+        processedData = jsonData.map(item => ({
+          title: item.title,
+          description: item.description,
+          event_date: item.event_date,
+          location: item.location || null,
+          max_guests: item.max_guests ? parseInt(item.max_guests) : null,
+          images: item.images || [],
+          contact_name: item.contact_name,
+          contact_phone: item.contact_phone || null
+        }))
+      } else if (activeTab === 'informacoes') {
+        table = 'infos'
+        processedData = jsonData.map(item => ({
+          title: item.title,
+          description: item.description,
+          detailed_description: item.detailed_description || null,
+          category: item.category,
+          phone: item.phone || null,
+          address: item.address || null,
+          location: item.location || null,
+          hours: item.hours || null,
+          services: item.services || null,
+          observations: item.observations || null,
+          website: item.website || null,
+          email: item.email || null,
+          images: item.images || [],
+          color: item.color || null,
+          icon: item.icon || null
+        }))
+      } else if (activeTab === 'crm') {
+        table = 'crm_contacts'
+        processedData = jsonData.map(item => ({
+          name: item.name,
+          email: item.email || null,
+          phone: item.phone || null,
+          link: item.link || null,
+          description: item.description || null,
+          notes: item.notes || null,
+          last_contact: item.last_contact || null,
+          tags: item.tags || null
+        }))
+      }
+
+      const { error } = await supabase.from(table).insert(processedData)
+      if (error) throw error
+
+      showMessage(`${processedData.length} itens importados com sucesso!`)
+      setJsonInput('')
+      setJsonData([])
+      setJsonValid(null)
+      setJsonError('')
+      fetchData()
+    } catch (err) {
+      showMessage('Erro ao importar JSON: ' + (err as Error).message, true)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const getJsonExample = (type: string) => {
+    const examples: Record<string, any> = {
+      crm: [
+        {
+          name: "João Silva",
+          email: "joao@exemplo.com",
+          phone: "(11) 99999-9999",
+          link: "https://linkedin.com/in/joaosilva",
+          description: "Síndico do Bloco A",
+          tags: ["VIP", "Síndico"],
+          notes: "Contato importante para questões do condomínio",
+          last_contact: "2025-08-06"
+        }
+      ],
+      imoveis: [
+        {
+          title: "Apartamento 2 quartos - Vista mar",
+          description: "Lindo apartamento com vista para o mar, totalmente mobiliado",
+          type: "RENT",
+          property_subtype: "APARTMENT", 
+          price: 2500.00,
+          bedrooms: 2,
+          bathrooms: 1,
+          area: 65.5,
+          contact_name: "Pedro Costa",
+          contact_phone: "(11) 77777-7777",
+          instagram: "@pedrocosta",
+          apartment: "789",
+          block: "C",
+          link: "https://airbnb.com.br/rooms/12345678",
+          images: ["https://exemplo.com/apartamento1.jpg"]
+        }
+      ],
+      classificados: [
+        {
+          title: "Exemplo de Classificado",
+          description: "Descrição detalhada do produto ou serviço oferecido",
+          category: "GERAL",
+          price: 100.50,
+          contact_name: "João Silva",
+          contact_phone: "(11) 99999-9999", 
+          instagram: "@joaosilva",
+          apartment: "123",
+          block: "A",
+          images: ["https://exemplo.com/imagem1.jpg"]
+        }
+      ],
+      eventos: [
+        {
+          title: "Festa de Ano Novo",
+          description: "Celebração de Ano Novo na área da piscina com música e comida",
+          event_date: "2025-12-31T22:00:00",
+          location: "Área da piscina",
+          max_guests: 50,
+          contact_name: "Carlos Santos", 
+          contact_phone: "(11) 55555-5555",
+          images: ["https://exemplo.com/festa1.jpg"]
+        }
+      ],
+      informacoes: [
+        {
+          title: "Hospital São Luiz",
+          description: "Hospital de referência na região",
+          detailed_description: "Hospital com atendimento 24h, pronto-socorro e diversas especialidades médicas",
+          category: "HOSPITAIS",
+          phone: "(11) 3333-3333",
+          address: "Rua das Flores, 123 - Riviera",
+          location: "Centro da Riviera", 
+          website: "https://www.hospitalsaoluiz.com.br",
+          email: "contato@hospitalsaoluiz.com.br",
+          color: "#FF0000",
+          icon: "hospital",
+          hours: {
+            monday: "00:00-23:59",
+            tuesday: "00:00-23:59",
+            wednesday: "00:00-23:59",
+            thursday: "00:00-23:59",
+            friday: "00:00-23:59",
+            saturday: "00:00-23:59",
+            sunday: "00:00-23:59"
+          },
+          services: ["Pronto-Socorro", "Cardiologia", "Ortopedia"],
+          observations: "Atendimento de emergência 24 horas",
+          images: ["https://exemplo.com/hospital1.jpg"]
+        }
+      ]
+    }
+    return JSON.stringify(examples[type] || [], null, 2)
+  }
+
+  const fillExample = () => {
+    const example = getJsonExample(activeTab)
+    setJsonInput(example)
+    handleJsonInput(example)
+  }
+
   if (!isAuthenticated) {
     return (
       <main className="min-h-screen bg-gray-900 flex items-center justify-center px-4">
@@ -659,6 +1020,17 @@ export default function AdminPage() {
             <Info className="mx-auto mb-1" size={20} />
             Informações
           </button>
+          <button
+            onClick={() => setActiveTab('crm')}
+            className={`flex-1 py-4 px-6 text-center font-medium ${
+              activeTab === 'crm'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Users className="mx-auto mb-1" size={20} />
+            CRM
+          </button>
         </div>
       </div>
 
@@ -686,6 +1058,17 @@ export default function AdminPage() {
           >
             <List size={16} />
             Listar Existentes
+          </button>
+          <button
+            onClick={() => { setViewMode('upload'); setEditingItem(null); }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium ${
+              viewMode === 'upload'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <FileText size={16} />
+            Upload JSON
           </button>
         </div>
       </div>
@@ -847,7 +1230,7 @@ export default function AdminPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input
                   type="text"
                   placeholder="Nome do contato"
@@ -863,11 +1246,21 @@ export default function AdminPage() {
                   onChange={(e) => setPropertyForm({...propertyForm, contact_phone: e.target.value})}
                   className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input
                   type="text"
                   placeholder="Instagram (@usuario)"
                   value={propertyForm.instagram}
                   onChange={(e) => setPropertyForm({...propertyForm, instagram: e.target.value})}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="url"
+                  placeholder="Link do anúncio (Airbnb, Booking.com, etc)"
+                  value={propertyForm.link}
+                  onChange={(e) => setPropertyForm({...propertyForm, link: e.target.value})}
                   className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -959,7 +1352,7 @@ export default function AdminPage() {
                       setEditingItem(null)
                       setPropertyForm({
                         title: '', description: '', type: 'RENT', property_subtype: 'APARTMENT', price: '', bedrooms: '', bathrooms: '',
-                        area: '', contact_name: '', contact_phone: '', instagram: '', apartment: '', block: ''
+                        area: '', contact_name: '', contact_phone: '', instagram: '', apartment: '', block: '', link: ''
                       })
                       setPropertyImages([])
                       setPropertyImagePreviews([])
@@ -1772,6 +2165,384 @@ export default function AdminPage() {
                 )}
               </div>
             </form>
+          </div>
+        )}
+
+        {/* CRM Content */}
+        {activeTab === 'crm' && viewMode === 'list' && (
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            <h2 className="text-lg font-semibold mb-6">Contatos CRM ({crmContacts.length})</h2>
+            <div className="space-y-4">
+              {crmContacts.map(item => (
+                <div key={item.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          item.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                        }`}>
+                          {item.status === 'ACTIVE' ? 'Ativo' : 'Inativo'}
+                        </span>
+                        {item.tags && item.tags.map(tag => (
+                          <span key={tag} className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                      <h3 className="font-semibold text-gray-800 mb-1">{item.name}</h3>
+                      {item.description && <p className="text-sm text-gray-600 mb-2">{item.description}</p>}
+                      <div className="flex items-center gap-4 text-sm text-gray-500">
+                        {item.email && <span>📧 {item.email}</span>}
+                        {item.phone && <span>📞 {item.phone}</span>}
+                        {item.link && <span>🔗 Link</span>}
+                      </div>
+                      {item.last_contact && (
+                        <div className="text-xs text-gray-400 mt-1">
+                          Último contato: {new Date(item.last_contact).toLocaleDateString('pt-BR')}
+                        </div>
+                      )}
+                      <div className="text-xs text-gray-400 mt-1">
+                        Criado em: {new Date(item.created_at).toLocaleDateString('pt-BR')}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 ml-4">
+                      <button
+                        onClick={() => { setEditingItem(item); setViewMode('create'); }}
+                        className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                        title="Editar"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(item.id, 'crm')}
+                        className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                        title="Excluir"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {crmContacts.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  Nenhum contato cadastrado ainda
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* CRM Form */}
+        {activeTab === 'crm' && viewMode === 'create' && (
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            <h2 className="text-lg font-semibold mb-6">
+              {editingItem ? 'Editar Contato CRM' : 'Cadastrar Contato CRM'}
+            </h2>
+            {editingItem && (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-700">
+                  📝 Editando: <strong>{editingItem.name}</strong>
+                </p>
+              </div>
+            )}
+            <form onSubmit={handleCrmSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input
+                  type="text"
+                  placeholder="Nome *"
+                  value={crmForm.name}
+                  onChange={(e) => setCrmForm({...crmForm, name: e.target.value})}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={crmForm.email}
+                  onChange={(e) => setCrmForm({...crmForm, email: e.target.value})}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input
+                  type="tel"
+                  placeholder="Telefone"
+                  value={crmForm.phone}
+                  onChange={(e) => setCrmForm({...crmForm, phone: e.target.value})}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="url"
+                  placeholder="Link (LinkedIn, site, etc)"
+                  value={crmForm.link}
+                  onChange={(e) => setCrmForm({...crmForm, link: e.target.value})}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <input
+                type="text"
+                placeholder="Descrição/Cargo/Função"
+                value={crmForm.description}
+                onChange={(e) => setCrmForm({...crmForm, description: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-sm font-medium text-gray-700">Tags/Categorias</label>
+                  <button
+                    type="button"
+                    onClick={addCrmTag}
+                    className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1"
+                  >
+                    <Plus size={16} /> Adicionar
+                  </button>
+                </div>
+                {crmTags.map((tag, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="Ex: VIP, Fornecedor, Síndico"
+                      value={tag}
+                      onChange={(e) => updateCrmTag(index, e.target.value)}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                    {crmTags.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeCrmTag(index)}
+                        className="p-2 text-red-600 hover:bg-red-100 rounded-lg"
+                      >
+                        <X size={16} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <textarea
+                placeholder="Observações e anotações"
+                value={crmForm.notes}
+                onChange={(e) => setCrmForm({...crmForm, notes: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                rows={3}
+              />
+
+              <input
+                type="date"
+                placeholder="Data do último contato"
+                value={crmForm.last_contact}
+                onChange={(e) => setCrmForm({...crmForm, last_contact: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                >
+                  {loading ? 'Salvando...' : (editingItem ? 'Atualizar Contato' : 'Cadastrar Contato')}
+                </button>
+                {editingItem && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingItem(null)
+                      setCrmForm({
+                        name: '', email: '', phone: '', link: '', description: '', notes: '', last_contact: ''
+                      })
+                      setCrmTags([''])
+                    }}
+                    className="px-6 bg-gray-500 text-white py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* JSON Input Content */}
+        {viewMode === 'upload' && (
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold">Importar dados via JSON</h2>
+              <button
+                onClick={fillExample}
+                className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors"
+              >
+                <FileText size={16} />
+                Usar Exemplo
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Instructions */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 className="font-medium text-blue-800 mb-2">📋 Como usar:</h3>
+                <ul className="text-sm text-blue-700 space-y-1">
+                  <li>1. Cole ou digite o JSON com seus dados no campo abaixo</li>
+                  <li>2. Clique em "Usar Exemplo" para ver o formato correto</li>
+                  <li>3. O sistema validará automaticamente a estrutura</li>
+                  <li>4. Se válido, clique em "Importar" para adicionar ao banco</li>
+                </ul>
+              </div>
+
+              {/* JSON Input */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-sm font-medium text-gray-700">JSON dos dados:</label>
+                  <div className="flex items-center gap-2">
+                    {jsonValid === true && (
+                      <span className="text-green-600 text-sm flex items-center gap-1">
+                        ✓ JSON válido ({jsonData.length} itens)
+                      </span>
+                    )}
+                    {jsonValid === false && (
+                      <span className="text-red-600 text-sm flex items-center gap-1">
+                        ✗ JSON inválido
+                      </span>
+                    )}
+                    {jsonInput && (
+                      <button
+                        onClick={() => {
+                          setJsonInput('')
+                          setJsonData([])
+                          setJsonValid(null)
+                          setJsonError('')
+                        }}
+                        className="text-red-600 hover:text-red-800 text-sm flex items-center gap-1"
+                      >
+                        <X size={14} />
+                        Limpar
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <textarea
+                  value={jsonInput}
+                  onChange={(e) => handleJsonInput(e.target.value)}
+                  placeholder={`Cole ou digite o JSON aqui...\n\nExemplo:\n[\n  {\n    "title": "Título do item",\n    "description": "Descrição...",\n    ...\n  }\n]`}
+                  className={`w-full h-80 px-4 py-3 border rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500 ${
+                    jsonValid === false ? 'border-red-300 bg-red-50' : 
+                    jsonValid === true ? 'border-green-300 bg-green-50' : 
+                    'border-gray-300'
+                  }`}
+                  style={{ resize: 'vertical', minHeight: '300px' }}
+                />
+                {jsonError && (
+                  <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg">
+                    ❌ {jsonError}
+                  </div>
+                )}
+              </div>
+
+              {/* Import button */}
+              {jsonValid === true && jsonData.length > 0 && (
+                <div className="flex gap-3">
+                  <button
+                    onClick={processJsonUpload}
+                    disabled={loading}
+                    className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      'Importando...'
+                    ) : (
+                      <>
+                        <Upload size={16} />
+                        Importar {jsonData.length} itens
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* Available fields info */}
+              <div className="bg-gray-50 border rounded-lg p-4">
+                <h3 className="font-medium text-gray-800 mb-2">📝 Campos disponíveis para {
+                  activeTab === 'imoveis' ? 'Imóveis' :
+                  activeTab === 'classificados' ? 'Classificados' :
+                  activeTab === 'eventos' ? 'Eventos' : 'Informações'
+                }:</h3>
+                <div className="text-sm text-gray-600 grid grid-cols-1 md:grid-cols-2 gap-1">
+                  {activeTab === 'imoveis' && (
+                    <>
+                      <span>• title (obrigatório)</span>
+                      <span>• description (obrigatório)</span>
+                      <span>• type (RENT|SALE - obrigatório)</span>
+                      <span>• property_subtype (APARTMENT|HOUSE|LAND)</span>
+                      <span>• price (obrigatório)</span>
+                      <span>• bedrooms (opcional)</span>
+                      <span>• bathrooms (opcional)</span>
+                      <span>• area (opcional)</span>
+                      <span>• contact_name (obrigatório)</span>
+                      <span>• contact_phone (opcional)</span>
+                      <span>• instagram (opcional)</span>
+                      <span>• link (URL do anúncio - opcional)</span>
+                      <span>• apartment, block (opcional)</span>
+                      <span>• images (array de URLs - opcional)</span>
+                    </>
+                  )}
+                  {activeTab === 'classificados' && (
+                    <>
+                      <span>• title (obrigatório)</span>
+                      <span>• description (obrigatório)</span>
+                      <span>• category (obrigatório)</span>
+                      <span>• price (opcional)</span>
+                      <span>• contact_name (obrigatório)</span>
+                      <span>• contact_phone (opcional)</span>
+                      <span>• instagram (opcional)</span>
+                      <span>• apartment, block (opcional)</span>
+                      <span>• images (array de URLs - opcional)</span>
+                    </>
+                  )}
+                  {activeTab === 'eventos' && (
+                    <>
+                      <span>• title (obrigatório)</span>
+                      <span>• description (obrigatório)</span>
+                      <span>• event_date (ISO format - obrigatório)</span>
+                      <span>• location (opcional)</span>
+                      <span>• max_guests (opcional)</span>
+                      <span>• contact_name (obrigatório)</span>
+                      <span>• contact_phone (opcional)</span>
+                      <span>• images (array de URLs - opcional)</span>
+                    </>
+                  )}
+                  {activeTab === 'informacoes' && (
+                    <>
+                      <span>• title (obrigatório)</span>
+                      <span>• description (obrigatório)</span>
+                      <span>• detailed_description (opcional)</span>
+                      <span>• category (obrigatório)</span>
+                      <span>• phone, email (opcional)</span>
+                      <span>• address, location (opcional)</span>
+                      <span>• website, color, icon (opcional)</span>
+                      <span>• hours (objeto com dias da semana)</span>
+                      <span>• services (array de strings)</span>
+                      <span>• observations (opcional)</span>
+                      <span>• images (array de URLs - opcional)</span>
+                    </>
+                  )}
+                  {activeTab === 'crm' && (
+                    <>
+                      <span>• name (obrigatório)</span>
+                      <span>• email (opcional)</span>
+                      <span>• phone (opcional)</span>
+                      <span>• link (opcional)</span>
+                      <span>• description (opcional)</span>
+                      <span>• tags (array de strings - opcional)</span>
+                      <span>• notes (opcional)</span>
+                      <span>• last_contact (data YYYY-MM-DD - opcional)</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

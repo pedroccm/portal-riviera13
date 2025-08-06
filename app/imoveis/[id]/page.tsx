@@ -71,6 +71,17 @@ export default function PropertyDetailPage() {
     }
   }
 
+  const isAirbnbLink = (url?: string) => {
+    if (!url) return false
+    return url.includes('airbnb.com') || url.includes('airbnb.com.br')
+  }
+
+  const handleAirbnb = () => {
+    if (property?.link) {
+      window.open(property.link, '_blank')
+    }
+  }
+
   // Touch handlers for swipe
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null)
@@ -343,6 +354,15 @@ export default function PropertyDetailPage() {
               >
                 <Instagram size={20} />
                 {property.instagram.startsWith('@') ? property.instagram : `@${property.instagram}`}
+              </button>
+            )}
+            
+            {isAirbnbLink(property.link) && (
+              <button
+                onClick={handleAirbnb}
+                className="w-full bg-[#FF5A5F] text-white py-3 px-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-[#E04347] transition-colors"
+              >
+                🏠 Ver no Airbnb
               </button>
             )}
           </div>

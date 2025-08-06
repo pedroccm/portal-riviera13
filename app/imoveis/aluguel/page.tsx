@@ -9,6 +9,11 @@ export default function AluguelPage() {
   const { properties, loading, error } = useProperties()
   const aluguelProperties = properties.filter(item => item.type === 'RENT')
 
+  const isAirbnbLink = (url?: string) => {
+    if (!url) return false
+    return url.includes('airbnb.com') || url.includes('airbnb.com.br')
+  }
+
   return (
     <main className="min-h-screen bg-surface">
       <MobileHeader title="Aluguel" showBack />
@@ -51,6 +56,17 @@ export default function AluguelPage() {
                       <span className="text-dark font-bold text-lg">
                         R$ {item.price.toLocaleString()}
                       </span>
+                      {isAirbnbLink(item.link) && (
+                        <a
+                          href={item.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="bg-[#FF5A5F] text-white px-3 py-1 rounded-lg text-xs font-medium hover:bg-[#E04347] transition-colors flex items-center gap-1"
+                        >
+                          🏠 Airbnb
+                        </a>
+                      )}
                     </div>
                   </div>
                   {item.images?.[0] && (
