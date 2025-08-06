@@ -257,7 +257,7 @@ export default function AdminPage() {
     }
   }
 
-  const handleDelete = async (id: string, type: 'property' | 'classified' | 'event' | 'info') => {
+  const handleDelete = async (id: string, type: 'property' | 'classified' | 'event' | 'info' | 'crm') => {
     if (!confirm('Tem certeza que deseja excluir este item?')) return
     
     setLoading(true)
@@ -720,7 +720,7 @@ export default function AdminPage() {
     setLoading(true)
     try {
       let table = ''
-      let processedData = []
+      let processedData: any[] = []
 
       if (activeTab === 'imoveis') {
         table = 'properties'
